@@ -688,8 +688,8 @@ function NodePanel({
       <ul className="np-runs">
         {node.commands.map((c) => (
           <li key={c.id}>
-            <button className="cmd-link" title="Open in Saved commands" onClick={() => onOpenCommand(c.id)}>
-              ⌘ {c.name}
+            <button className="run-link cmd-link" title="Open in Saved commands" onClick={() => onOpenCommand(c.id)}>
+              {c.name}
             </button>
             <button
               className="np-run-remove"

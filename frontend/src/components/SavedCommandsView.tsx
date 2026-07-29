@@ -148,7 +148,7 @@ function CommandDetail({
   return (
     <div className="view-detail">
       <div className="np-section">
-        “{command.name}”
+        {command.name}
         <button className="np-link-btn" onClick={copy}>
           {copied ? "copied ✓" : "copy"}
         </button>
@@ -196,7 +196,7 @@ function CommandForm({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal cmd-modal" onClick={(e) => e.stopPropagation()}>
         <h3>{initial ? "Edit command" : "New command"}</h3>
         <label className="field">
           <span className="field-label">Name <span className="req">*</span></span>
