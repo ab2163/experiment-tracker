@@ -23,6 +23,7 @@ import {
   fetchGraph,
   fetchRunSets,
   removeRunFromNode,
+  setNodePosition,
   setNodeRunSet,
   updateNode,
 } from "../api";
@@ -32,7 +33,8 @@ import RunPicker from "./RunPicker";
 
 const EDGE_COLOR = "#111827";
 
-/** Simple left-to-right layered layout by edge depth (no positions are persisted). */
+/** Simple left-to-right layered layout by edge depth, used only when a node has
+    no persisted position yet. */
 function layout(nodes: GraphNode[], edges: Graph["edges"]): Record<string, { x: number; y: number }> {
   const incoming = new Map<string, number>();
   nodes.forEach((n) => incoming.set(n.id, 0));
@@ -129,8 +131,15 @@ export default function ExperimentGraph({ experimentId }: { experimentId: string
   const load = useCallback(async () => {
     const g = await fetchGraph(experimentId);
     setGraph(g);
-    const pos = layout(g.nodes, g.edges);
-    const posOf = (id: string) => posRef.current[id] ?? pos[id] ?? { x: 0, y: 0 };
+    const auto = layout(g.nodes, g.edges);
+    // Prefer an in-session position (a drag this session), then the position
+    // persisted in the DB, then the auto-layout fallback for brand-new nodes.
+    const dbPos: Record<string, { x: number; y: number }> = {};
+    g.nodes.forEach((n) => {
+      if (n.pos_x != null && n.pos_y != null) dbPos[n.id] = { x: n.pos_x, y: n.pos_y };
+    });
+    const posOf = (id: string) =>
+      posRef.current[id] ?? dbPos[id] ?? auto[id] ?? { x: 0, y: 0 };
     setRfNodes(
       g.nodes.map<Node>((n) => ({
         id: n.id,
@@ -279,6 +288,16 @@ export default function ExperimentGraph({ experimentId }: { experimentId: string
     [load]
   );
 
+  // Persist a node's position after a drag so the layout survives reloads.
+  const onNodeDragStop = useCallback(async (_: unknown, node: Node) => {
+    posRef.current[node.id] = node.position;
+    try {
+      await setNodePosition(node.id, node.position.x, node.position.y);
+    } catch (e) {
+      setError(String(e));
+    }
+  }, []);
+
   return (
     <div className="graph-wrap">
       <div className="graph-toolbar">
@@ -329,6 +348,7 @@ export default function ExperimentGraph({ experimentId }: { experimentId: string
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
+          onNodeDragStop={onNodeDragStop}
           onEdgeClick={onEdgeClick}
           onPaneClick={() => setSelectedEdge(null)}
           onEdgesDelete={onEdgesDelete}

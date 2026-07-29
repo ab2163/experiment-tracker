@@ -112,6 +112,10 @@ class Node(Base):
     # only on explicit selection; cleared whenever the node's runs change. Not a
     # hard FK so a deleted run set simply drops the badge.
     run_set_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # Persisted canvas position so the graph layout survives reloads. Null until
+    # the node has been placed/dragged; the frontend falls back to auto-layout.
+    pos_x: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    pos_y: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     experiment: Mapped["Experiment"] = relationship(back_populates="nodes")

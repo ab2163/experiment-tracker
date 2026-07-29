@@ -15,6 +15,7 @@ from ..schemas import (
     GraphOut,
     NodeCreate,
     NodeOut,
+    NodePosition,
     NodeRunSetIn,
     NodeUpdate,
     RunSummary,
@@ -47,6 +48,8 @@ def _node_out(db: Session, node: Node) -> NodeOut:
         environments=sorted({r.environment for r in runs}),
         commits=sorted({_commit_label(r) for r in runs}),
         run_set_badge=badge,
+        pos_x=node.pos_x,
+        pos_y=node.pos_y,
     )
 
 
@@ -166,6 +169,17 @@ def update_node(node_id: str, payload: NodeUpdate, db: Session = Depends(get_db)
     node = _get_node(db, node_id)
     for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(node, k, v)
+    db.commit()
+    db.refresh(node)
+    return _node_out(db, node)
+
+
+@router.patch("/nodes/{node_id}/position", response_model=NodeOut)
+def set_node_position(node_id: str, payload: NodePosition, db: Session = Depends(get_db)):
+    """Persist a node's canvas position so the layout survives reloads."""
+    node = _get_node(db, node_id)
+    node.pos_x = payload.x
+    node.pos_y = payload.y
     db.commit()
     db.refresh(node)
     return _node_out(db, node)

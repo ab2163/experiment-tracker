@@ -80,6 +80,8 @@ export interface GraphNode {
   environments: string[];
   commits: string[];
   run_set_badge: string | null;
+  pos_x: number | null;
+  pos_y: number | null;
 }
 
 export interface GraphEdge {

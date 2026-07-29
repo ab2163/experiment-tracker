@@ -100,6 +100,11 @@ class NodeRunSetIn(BaseModel):
     run_set_id: str
 
 
+class NodePosition(BaseModel):
+    x: float
+    y: float
+
+
 class NodeUpdate(BaseModel):
     one_liner: Optional[str] = None
     node_date: Optional[date] = None
@@ -118,6 +123,8 @@ class NodeOut(BaseModel):
     environments: list[str]
     commits: list[str]
     run_set_badge: Optional[str] = None
+    pos_x: Optional[float] = None
+    pos_y: Optional[float] = None
 
 
 class EdgeCreate(BaseModel):

@@ -34,6 +34,10 @@ def _ensure_columns():
         node_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(nodes)"))}
         if node_cols and "run_set_id" not in node_cols:
             conn.execute(text("ALTER TABLE nodes ADD COLUMN run_set_id VARCHAR"))
+        if node_cols and "pos_x" not in node_cols:
+            conn.execute(text("ALTER TABLE nodes ADD COLUMN pos_x FLOAT"))
+        if node_cols and "pos_y" not in node_cols:
+            conn.execute(text("ALTER TABLE nodes ADD COLUMN pos_y FLOAT"))
         rs_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(run_sets)"))}
         if rs_cols and "short_id" not in rs_cols:
             conn.execute(text("ALTER TABLE run_sets ADD COLUMN short_id VARCHAR"))

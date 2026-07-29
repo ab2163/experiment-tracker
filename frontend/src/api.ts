@@ -134,6 +134,12 @@ export async function updateNode(
   );
 }
 
+export async function setNodePosition(nodeId: string, x: number, y: number): Promise<GraphNode> {
+  return jsonOrThrow(
+    await fetch(`/api/nodes/${nodeId}/position`, { ...POST({ x, y }), method: "PATCH" })
+  );
+}
+
 export async function createEdge(
   experimentId: string,
   payload: { source_id: string; target_id: string }
