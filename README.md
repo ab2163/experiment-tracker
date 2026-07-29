@@ -70,12 +70,24 @@ uvicorn app.main:app --port 8123
 
 ### Frontend
 
+Quickest — the script installs deps on first run and starts Vite:
+
+```bash
+cd frontend
+./run.sh           # http://localhost:5173 (proxies /api -> http://localhost:8123)
+```
+
+Or manually:
+
 ```bash
 cd frontend
 npm install
 npm run dev        # http://localhost:5173 (proxies /api -> http://localhost:8123)
 npm run build      # typecheck + production build into dist/
 ```
+
+> Dev needs both processes: the backend (`backend/run.sh`, port 8123) and the
+> frontend (`frontend/run.sh`, port 5173). Open the Vite URL (5173).
 
 ## Configuration
 
