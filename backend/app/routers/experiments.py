@@ -5,8 +5,9 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Experiment, Node, NodeEdge, NodeRun, Run, RunSet
+from ..models import Experiment, Node, NodeCommand, NodeEdge, NodeRun, Run, RunSet, SavedCommand
 from ..schemas import (
+    CommandRef,
     EdgeCreate,
     EdgeOut,
     ExperimentCreate,
@@ -36,6 +37,10 @@ def _node_out(db: Session, node: Node) -> NodeOut:
         rs = db.get(RunSet, node.run_set_id)
         if rs:  # run set may have been deleted → badge silently drops
             badge = rs.short_id
+    commands = sorted(
+        (link.command for link in node.command_links if link.command is not None),
+        key=lambda c: c.name.lower(),
+    )
     return NodeOut(
         id=node.id,
         experiment_id=node.experiment_id,
@@ -48,6 +53,7 @@ def _node_out(db: Session, node: Node) -> NodeOut:
         environments=sorted({r.environment for r in runs}),
         commits=sorted({_commit_label(r) for r in runs}),
         run_set_badge=badge,
+        commands=[CommandRef(id=c.id, name=c.name) for c in commands],
         pos_x=node.pos_x,
         pos_y=node.pos_y,
     )
@@ -67,6 +73,17 @@ def _validate_runs(db: Session, run_ids: list[str]) -> None:
     missing = [r for r in run_ids if r not in found]
     if missing:
         raise HTTPException(400, f"Unknown run ids: {missing}")
+
+
+def _validate_commands(db: Session, command_ids: list[str]) -> None:
+    if not command_ids:
+        return
+    found = set(
+        db.execute(select(SavedCommand.id).where(SavedCommand.id.in_(command_ids))).scalars()
+    )
+    missing = [c for c in command_ids if c not in found]
+    if missing:
+        raise HTTPException(400, f"Unknown command ids: {missing}")
 
 
 # --- experiments ---------------------------------------------------------
@@ -148,6 +165,7 @@ def create_node(experiment_id: str, payload: NodeCreate, db: Session = Depends(g
         run_ids = [link.run_id for link in rs.run_links]
         run_set_id = rs.id
     _validate_runs(db, run_ids)
+    _validate_commands(db, payload.command_ids)
     node = Node(
         experiment_id=experiment_id,
         one_liner=payload.one_liner,
@@ -159,6 +177,8 @@ def create_node(experiment_id: str, payload: NodeCreate, db: Session = Depends(g
     db.flush()
     for run_id in dict.fromkeys(run_ids):  # dedupe, preserve order
         db.add(NodeRun(node_id=node.id, run_id=run_id))
+    for command_id in dict.fromkeys(payload.command_ids):
+        db.add(NodeCommand(node_id=node.id, command_id=command_id))
     db.commit()
     db.refresh(node)
     return _node_out(db, node)
@@ -232,6 +252,34 @@ def set_node_run_set(node_id: str, payload: NodeRunSetIn, db: Session = Depends(
     node.run_set_id = rs.id
     db.commit()
     db.refresh(node)
+    return _node_out(db, node)
+
+
+@router.post("/nodes/{node_id}/commands", response_model=NodeOut)
+def add_commands(node_id: str, command_ids: list[str], db: Session = Depends(get_db)):
+    node = _get_node(db, node_id)
+    _validate_commands(db, command_ids)
+    existing = {link.command_id for link in node.command_links}
+    for command_id in dict.fromkeys(command_ids):
+        if command_id not in existing:
+            db.add(NodeCommand(node_id=node.id, command_id=command_id))
+    db.commit()
+    db.refresh(node)
+    return _node_out(db, node)
+
+
+@router.delete("/nodes/{node_id}/commands/{command_id}", response_model=NodeOut)
+def remove_command(node_id: str, command_id: str, db: Session = Depends(get_db)):
+    node = _get_node(db, node_id)
+    link = db.execute(
+        select(NodeCommand).where(
+            NodeCommand.node_id == node_id, NodeCommand.command_id == command_id
+        )
+    ).scalar_one_or_none()
+    if link:
+        db.delete(link)
+        db.commit()
+        db.refresh(node)
     return _node_out(db, node)
 
 

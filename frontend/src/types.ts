@@ -68,6 +68,18 @@ export interface RunSummary {
   epochs_achieved: number | null;
 }
 
+export interface SavedCommand {
+  id: string;
+  name: string;
+  command: string;
+  created_at: string;
+}
+
+export interface CommandRef {
+  id: string;
+  name: string;
+}
+
 export interface GraphNode {
   id: string;
   experiment_id: string;
@@ -80,6 +92,7 @@ export interface GraphNode {
   environments: string[];
   commits: string[];
   run_set_badge: string | null;
+  commands: CommandRef[];
   pos_x: number | null;
   pos_y: number | null;
 }

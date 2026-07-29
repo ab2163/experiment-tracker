@@ -6,7 +6,11 @@ import ExperimentGraph from "./ExperimentGraph";
 
 const TITLE_MAX = 50;
 
-export default function ExperimentsView() {
+export default function ExperimentsView({
+  onOpenCommand,
+}: {
+  onOpenCommand: (commandId: string) => void;
+}) {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [selected, setSelected] = useState<Experiment | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +41,7 @@ export default function ExperimentsView() {
           )}
         </div>
         {selected.description && <p className="subtitle">{selected.description}</p>}
-        <ExperimentGraph experimentId={selected.id} />
+        <ExperimentGraph experimentId={selected.id} onOpenCommand={onOpenCommand} />
       </div>
     );
   }

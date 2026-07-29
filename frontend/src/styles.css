@@ -409,6 +409,81 @@ header h1 {
   font-size: 11px;
   color: #15803d;
 }
+.an-cmds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.an-cmd {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid #ddd6fe;
+  background: #f5f3ff;
+  color: #5b21b6;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.an-cmd:hover {
+  background: #ede9fe;
+}
+
+/* --- saved commands --- */
+.cmd-box {
+  margin: 0;
+  padding: 12px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+.cmd-input {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+.cmd-link {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.cmd-link:hover {
+  text-decoration: underline;
+}
+.cmd-pick {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.cmd-pick li {
+  padding: 2px 0;
+}
+.cmd-pick label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
 
 /* --- node side panel --- */
 .node-panel {

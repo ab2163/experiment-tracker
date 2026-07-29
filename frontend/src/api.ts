@@ -9,6 +9,7 @@ import type {
   ProjectCount,
   RunList,
   RunSet,
+  SavedCommand,
   SyncStatus,
   UserCount,
   WandbSyncResult,
@@ -116,7 +117,14 @@ export async function fetchGraph(experimentId: string): Promise<Graph> {
 
 export async function createNode(
   experimentId: string,
-  payload: { one_liner: string; node_date?: string; result?: string; run_ids: string[]; run_set_id?: string }
+  payload: {
+    one_liner: string;
+    node_date?: string;
+    result?: string;
+    run_ids: string[];
+    command_ids?: string[];
+    run_set_id?: string;
+  }
 ): Promise<GraphNode> {
   return jsonOrThrow(await fetch(`/api/experiments/${experimentId}/nodes`, POST(payload)));
 }
@@ -171,6 +179,14 @@ export async function removeRunFromNode(nodeId: string, runId: string): Promise<
   return jsonOrThrow(await fetch(`/api/nodes/${nodeId}/runs/${runId}`, { method: "DELETE" }));
 }
 
+export async function addCommandsToNode(nodeId: string, commandIds: string[]): Promise<GraphNode> {
+  return jsonOrThrow(await fetch(`/api/nodes/${nodeId}/commands`, POST(commandIds)));
+}
+
+export async function removeCommandFromNode(nodeId: string, commandId: string): Promise<GraphNode> {
+  return jsonOrThrow(await fetch(`/api/nodes/${nodeId}/commands/${commandId}`, { method: "DELETE" }));
+}
+
 export async function fetchSyncStatus(): Promise<SyncStatus> {
   return jsonOrThrow(await fetch("/api/sync/status"));
 }
@@ -216,4 +232,26 @@ export async function addRunsToRunSet(runSetId: string, runIds: string[]): Promi
 export async function removeRunFromRunSet(runSetId: string, runId: string): Promise<RunSet> {
   // run ids contain slashes; backend route is a :path converter, leave raw.
   return jsonOrThrow(await fetch(`/api/run-sets/${runSetId}/runs/${runId}`, { method: "DELETE" }));
+}
+
+export async function fetchSavedCommands(): Promise<SavedCommand[]> {
+  return jsonOrThrow(await fetch("/api/saved-commands"));
+}
+
+export async function createSavedCommand(payload: { name: string; command: string }): Promise<SavedCommand> {
+  return jsonOrThrow(await fetch("/api/saved-commands", POST(payload)));
+}
+
+export async function updateSavedCommand(
+  commandId: string,
+  payload: { name: string; command: string }
+): Promise<SavedCommand> {
+  return jsonOrThrow(
+    await fetch(`/api/saved-commands/${commandId}`, { ...POST(payload), method: "PATCH" })
+  );
+}
+
+export async function deleteSavedCommand(commandId: string): Promise<void> {
+  const res = await fetch(`/api/saved-commands/${commandId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Failed to delete command: ${res.status}`);
 }

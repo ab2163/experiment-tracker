@@ -15,6 +15,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import {
+  addCommandsToNode,
   addRunsToNode,
   createEdge,
   createNode,
@@ -22,12 +23,14 @@ import {
   deleteNode,
   fetchGraph,
   fetchRunSets,
+  fetchSavedCommands,
+  removeCommandFromNode,
   removeRunFromNode,
   setNodePosition,
   setNodeRunSet,
   updateNode,
 } from "../api";
-import type { Graph, GraphNode, RunSet } from "../types";
+import type { Graph, GraphNode, RunSet, SavedCommand } from "../types";
 import { noAssist } from "../uiHelpers";
 import RunPicker from "./RunPicker";
 
@@ -69,7 +72,9 @@ function layout(nodes: GraphNode[], edges: Graph["edges"]): Record<string, { x: 
   return pos;
 }
 
-function AblationNode({ data }: NodeProps<{ node: GraphNode }>) {
+function AblationNode({
+  data,
+}: NodeProps<{ node: GraphNode; onOpenCommand: (commandId: string) => void }>) {
   const n = data.node;
   return (
     <div className="ablation-node" title={`${n.one_liner}\n${n.node_date} · ${n.run_count} run(s)`}>
@@ -97,6 +102,23 @@ function AblationNode({ data }: NodeProps<{ node: GraphNode }>) {
           </span>
         ))}
       </div>
+      {n.commands.length > 0 && (
+        <div className="an-cmds">
+          {n.commands.map((c) => (
+            <button
+              key={c.id}
+              className="an-cmd"
+              title={`Open command “${c.name}” to reproduce these runs`}
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onOpenCommand(c.id);
+              }}
+            >
+              ⌘ {c.name}
+            </button>
+          ))}
+        </div>
+      )}
       {n.result && <div className="an-result">✓ {n.result.slice(0, 60)}{n.result.length > 60 ? "…" : ""}</div>}
       <Handle id="r-target" type="target" position={Position.Right} />
       <Handle id="r-source" type="source" position={Position.Right} />
@@ -106,7 +128,13 @@ function AblationNode({ data }: NodeProps<{ node: GraphNode }>) {
 
 const nodeTypes = { ablation: AblationNode };
 
-export default function ExperimentGraph({ experimentId }: { experimentId: string }) {
+export default function ExperimentGraph({
+  experimentId,
+  onOpenCommand,
+}: {
+  experimentId: string;
+  onOpenCommand: (commandId: string) => void;
+}) {
   const [graph, setGraph] = useState<Graph | null>(null);
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState([]);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState([]);
@@ -145,7 +173,7 @@ export default function ExperimentGraph({ experimentId }: { experimentId: string
         id: n.id,
         type: "ablation",
         position: posOf(n.id),
-        data: { node: n },
+        data: { node: n, onOpenCommand },
       }))
     );
     setRfEdges(
@@ -167,7 +195,7 @@ export default function ExperimentGraph({ experimentId }: { experimentId: string
         };
       })
     );
-  }, [experimentId, setRfNodes, setRfEdges]);
+  }, [experimentId, onOpenCommand, setRfNodes, setRfEdges]);
 
   useEffect(() => {
     load().catch((e) => setError(String(e)));
@@ -365,6 +393,7 @@ export default function ExperimentGraph({ experimentId }: { experimentId: string
         <NodePanel
           key={selected.id}
           node={selected}
+          onOpenCommand={onOpenCommand}
           onClose={() => setSelected(null)}
           onDeleted={async () => {
             setSelected(null);
@@ -395,11 +424,13 @@ export default function ExperimentGraph({ experimentId }: { experimentId: string
 
 function NodePanel({
   node,
+  onOpenCommand,
   onClose,
   onSaved,
   onDeleted,
 }: {
   node: GraphNode;
+  onOpenCommand: (commandId: string) => void;
   onClose: () => void;
   onSaved: () => Promise<void>;
   onDeleted: () => Promise<void>;
@@ -412,6 +443,9 @@ function NodePanel({
   const [addingRuns, setAddingRuns] = useState(false);
   const [newRunIds, setNewRunIds] = useState<string[]>([]);
   const [runSets, setRunSets] = useState<RunSet[]>([]);
+  const [commands, setCommands] = useState<SavedCommand[]>([]);
+  const [addingCmds, setAddingCmds] = useState(false);
+  const [newCmdIds, setNewCmdIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -423,6 +457,7 @@ function NodePanel({
 
   useEffect(() => {
     fetchRunSets().then(setRunSets).catch(() => {});
+    fetchSavedCommands().then(setCommands).catch(() => {});
   }, []);
 
   const withBusy = async (fn: () => Promise<void>) => {
@@ -478,6 +513,23 @@ function NodePanel({
     await removeRunFromNode(node.id, runId);
     await onSaved();
   });
+
+  const addCommands = () => withBusy(async () => {
+    if (newCmdIds.length) await addCommandsToNode(node.id, newCmdIds);
+    setNewCmdIds([]);
+    setAddingCmds(false);
+    await onSaved();
+  });
+
+  const removeCommand = (commandId: string) => withBusy(async () => {
+    await removeCommandFromNode(node.id, commandId);
+    await onSaved();
+  });
+
+  const attachedCmdIds = new Set(node.commands.map((c) => c.id));
+  const availableCmds = commands.filter((c) => !attachedCmdIds.has(c.id));
+  const toggleNewCmd = (id: string) =>
+    setNewCmdIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const attachRunSet = (runSetId: string) => {
     if (!runSetId) return;
@@ -596,6 +648,62 @@ function NodePanel({
         ))}
       </select>
 
+      <div className="np-section">
+        Commands
+        <button
+          className="np-link-btn"
+          onClick={() => setAddingCmds((v) => !v)}
+          disabled={availableCmds.length === 0 && !addingCmds}
+        >
+          {addingCmds ? "close" : "+ add"}
+        </button>
+      </div>
+      {addingCmds && (
+        <div className="np-add-cmds">
+          {availableCmds.length === 0 ? (
+            <div className="muted">All saved commands are already attached.</div>
+          ) : (
+            <>
+              <ul className="cmd-pick">
+                {availableCmds.map((c) => (
+                  <li key={c.id}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={newCmdIds.includes(c.id)}
+                        onChange={() => toggleNewCmd(c.id)}
+                      />
+                      {c.name}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <button className="primary" onClick={addCommands} disabled={saving || newCmdIds.length === 0}>
+                Add {newCmdIds.length || ""} command{newCmdIds.length === 1 ? "" : "s"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      <ul className="np-runs">
+        {node.commands.map((c) => (
+          <li key={c.id}>
+            <button className="cmd-link" title="Open in Saved commands" onClick={() => onOpenCommand(c.id)}>
+              ⌘ {c.name}
+            </button>
+            <button
+              className="np-run-remove"
+              title="Remove command from node"
+              onClick={() => removeCommand(c.id)}
+              disabled={saving}
+            >
+              ×
+            </button>
+          </li>
+        ))}
+        {node.commands.length === 0 && <li className="muted">No commands linked.</li>}
+      </ul>
+
       <div className="np-section">Result</div>
       <textarea
         {...noAssist}
@@ -632,12 +740,18 @@ function AddNodeForm({
   const [runIds, setRunIds] = useState<string[]>([]);
   const [runSetId, setRunSetId] = useState("");
   const [runSets, setRunSets] = useState<RunSet[]>([]);
+  const [commands, setCommands] = useState<SavedCommand[]>([]);
+  const [commandIds, setCommandIds] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     fetchRunSets().then(setRunSets).catch(() => {});
+    fetchSavedCommands().then(setCommands).catch(() => {});
   }, []);
+
+  const toggleCommand = (id: string) =>
+    setCommandIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const submit = async () => {
     const errs: string[] = [];
@@ -655,6 +769,7 @@ function AddNodeForm({
         // A run set (if chosen) defines the node's runs and its badge; otherwise
         // the individually-picked runs are used.
         run_ids: runSetId ? [] : runIds,
+        command_ids: commandIds,
         run_set_id: runSetId || undefined,
       });
       await onCreated();
@@ -698,6 +813,27 @@ function AddNodeForm({
             <RunPicker selected={runIds} onChange={setRunIds} />
           </div>
         )}
+        <div className="field">
+          <span className="field-label">Attach saved commands (optional)</span>
+          {commands.length === 0 ? (
+            <div className="muted">No saved commands yet.</div>
+          ) : (
+            <ul className="cmd-pick">
+              {commands.map((c) => (
+                <li key={c.id}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={commandIds.includes(c.id)}
+                      onChange={() => toggleCommand(c.id)}
+                    />
+                    {c.name}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         {errors.map((msg, i) => (
           <div className="error" key={i}>{msg}</div>
         ))}

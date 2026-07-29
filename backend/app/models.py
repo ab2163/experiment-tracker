@@ -122,6 +122,9 @@ class Node(Base):
     run_links: Mapped[list["NodeRun"]] = relationship(
         back_populates="node", cascade="all, delete-orphan"
     )
+    command_links: Mapped[list["NodeCommand"]] = relationship(
+        back_populates="node", cascade="all, delete-orphan"
+    )
 
 
 class NodeRun(Base):
@@ -183,3 +186,33 @@ class RunSetRun(Base):
 
     run_set: Mapped["RunSet"] = relationship(back_populates="run_links")
     run: Mapped["Run"] = relationship()
+
+
+# ---------------------------------------------------------------------------
+# Saved commands — named, reusable run commands the user can attach to nodes
+# to record how the node's runs are reproduced.
+# ---------------------------------------------------------------------------
+
+class SavedCommand(Base):
+    __tablename__ = "saved_commands"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String, unique=True, index=True)
+    command: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class NodeCommand(Base):
+    """Association: a saved command is attached to a node (many-to-many)."""
+
+    __tablename__ = "node_commands"
+    __table_args__ = (UniqueConstraint("node_id", "command_id", name="uq_node_command"),)
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    node_id: Mapped[str] = mapped_column(ForeignKey("nodes.id", ondelete="CASCADE"), index=True)
+    command_id: Mapped[str] = mapped_column(
+        ForeignKey("saved_commands.id", ondelete="CASCADE"), index=True
+    )
+
+    node: Mapped["Node"] = relationship(back_populates="command_links")
+    command: Mapped["SavedCommand"] = relationship()

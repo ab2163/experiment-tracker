@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 from .db import Base, engine
 from .models import gen_short_id
-from .routers import experiments, run_sets, runs, sync
+from .routers import experiments, run_sets, runs, saved_commands, sync
 
 app = FastAPI(title="Experiment Tracker", version="0.1.0")
 
@@ -23,6 +23,7 @@ app.include_router(runs.router)
 app.include_router(experiments.router)
 app.include_router(sync.router)
 app.include_router(run_sets.router)
+app.include_router(saved_commands.router)
 
 
 def _ensure_columns():

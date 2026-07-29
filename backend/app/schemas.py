@@ -87,11 +87,20 @@ class ExperimentOut(BaseModel):
     node_count: int = 0
 
 
+class CommandRef(BaseModel):
+    """Compact saved-command info shown inside a node."""
+
+    id: str
+    name: str
+
+
 class NodeCreate(BaseModel):
     one_liner: str
     node_date: Optional[date] = None
     result: Optional[str] = None
     run_ids: list[str] = []
+    # Saved commands to attach at creation (how the node's runs are reproduced).
+    command_ids: list[str] = []
     # If set, the node is populated from this run set's runs and gets its badge.
     run_set_id: Optional[str] = None
 
@@ -123,6 +132,7 @@ class NodeOut(BaseModel):
     environments: list[str]
     commits: list[str]
     run_set_badge: Optional[str] = None
+    commands: list[CommandRef] = []
     pos_x: Optional[float] = None
     pos_y: Optional[float] = None
 
@@ -196,3 +206,24 @@ class RunSetOut(BaseModel):
     created_at: datetime
     run_count: int
     runs: list[RunSummary]
+
+
+# --- Saved commands ------------------------------------------------------
+
+class SavedCommandCreate(BaseModel):
+    name: str
+    command: str
+
+
+class SavedCommandUpdate(BaseModel):
+    name: str
+    command: str
+
+
+class SavedCommandOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    command: str
+    created_at: datetime
