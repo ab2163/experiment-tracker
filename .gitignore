@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+
+# Secrets & local data (never commit)
+.env
+*.db
+*.sqlite
+*.sqlite3
+
+# Build artifacts / archives
+*.tar.gz
+
+# OS
+.DS_Store
+
+# Local working notes (not part of the public project)
+CLAUDE.md
+CLAUDE.context.md
+HANDOFF.md
