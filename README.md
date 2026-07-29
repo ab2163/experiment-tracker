@@ -44,11 +44,21 @@ Vite serves the frontend and proxies `/api`.
 
 ### Backend
 
+Quickest — the startup script sets up the venv, installs deps, ingests on first
+run, and serves on port 8123:
+
+```bash
+cd backend
+cp .env.example .env          # then edit .env: set WANDB_API_KEY and WANDB_ENTITY
+./run.sh                      # --ingest to force a re-pull, --no-ingest to skip
+```
+
+Or do it manually:
+
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Python 3.9+
 pip install -r requirements.txt
-
 cp .env.example .env          # then edit .env: set WANDB_API_KEY and WANDB_ENTITY
 
 # 1. Populate the local DB from WandB (scans your entity's projects)
