@@ -227,3 +227,31 @@ class SavedCommandOut(BaseModel):
     name: str
     command: str
     created_at: datetime
+
+
+# --- Improvements --------------------------------------------------------
+
+Priority = Literal["H", "M", "L"]
+
+
+class ImprovementCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    priority: Optional[Priority] = None
+
+
+class ImprovementUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    priority: Optional[Priority] = None
+
+
+class ImprovementOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    number: int
+    title: str
+    description: Optional[str]
+    priority: Optional[Priority]
+    created_at: datetime

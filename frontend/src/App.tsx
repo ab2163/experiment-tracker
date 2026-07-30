@@ -3,8 +3,9 @@ import RunsView from "./components/RunsView";
 import ExperimentsView from "./components/ExperimentsView";
 import RunSetsView from "./components/RunSetsView";
 import SavedCommandsView from "./components/SavedCommandsView";
+import ImprovementsView from "./components/ImprovementsView";
 
-type Tab = "runs" | "run-sets" | "experiments" | "commands";
+type Tab = "runs" | "run-sets" | "experiments" | "commands" | "improvements";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("runs");
@@ -40,6 +41,12 @@ export default function App() {
           >
             Saved commands
           </button>
+          <button
+            className={tab === "improvements" ? "tab active" : "tab"}
+            onClick={() => setTab("improvements")}
+          >
+            Improvements
+          </button>
         </nav>
       </header>
 
@@ -52,6 +59,7 @@ export default function App() {
           onConsumedOpen={() => setOpenCommandId(null)}
         />
       )}
+      {tab === "improvements" && <ImprovementsView />}
     </div>
   );
 }

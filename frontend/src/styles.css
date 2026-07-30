@@ -488,6 +488,70 @@ header h1 {
   cursor: pointer;
 }
 
+/* --- improvements (tickets) --- */
+.ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ticket {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+}
+.ticket-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ticket-no {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ticket-title {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ticket-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ticket-desc {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+.prio {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.prio-H {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+.prio-M {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.prio-L {
+  background: #e5e7eb;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
 /* --- node side panel --- */
 .node-panel {
   position: absolute;

@@ -5,7 +5,9 @@ import type {
   Graph,
   GraphEdge,
   GraphNode,
+  Improvement,
   ImportDbResult,
+  Priority,
   ProjectCount,
   RunList,
   RunSet,
@@ -254,4 +256,30 @@ export async function updateSavedCommand(
 export async function deleteSavedCommand(commandId: string): Promise<void> {
   const res = await fetch(`/api/saved-commands/${commandId}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Failed to delete command: ${res.status}`);
+}
+
+export async function fetchImprovements(): Promise<Improvement[]> {
+  return jsonOrThrow(await fetch("/api/improvements"));
+}
+
+export async function createImprovement(payload: {
+  title: string;
+  description?: string | null;
+  priority?: Priority | null;
+}): Promise<Improvement> {
+  return jsonOrThrow(await fetch("/api/improvements", POST(payload)));
+}
+
+export async function updateImprovement(
+  improvementId: string,
+  payload: { title?: string; description?: string | null; priority?: Priority | null }
+): Promise<Improvement> {
+  return jsonOrThrow(
+    await fetch(`/api/improvements/${improvementId}`, { ...POST(payload), method: "PATCH" })
+  );
+}
+
+export async function deleteImprovement(improvementId: string): Promise<void> {
+  const res = await fetch(`/api/improvements/${improvementId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Failed to delete improvement: ${res.status}`);
 }

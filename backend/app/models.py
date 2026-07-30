@@ -216,3 +216,29 @@ class NodeCommand(Base):
 
     node: Mapped["Node"] = relationship(back_populates="command_links")
     command: Mapped["SavedCommand"] = relationship()
+
+
+# ---------------------------------------------------------------------------
+# Improvements — a lightweight ticket list for tracking improvements to make.
+# ---------------------------------------------------------------------------
+
+class Counter(Base):
+    """A named monotonic counter. `value` is the NEXT value to hand out; it only
+    ever increases, so numbers are never reused even after a row is deleted."""
+
+    __tablename__ = "counters"
+
+    name: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class Improvement(Base):
+    __tablename__ = "improvements"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    # Auto-assigned, unique, strictly ascending (see Counter). Displayed 4-digit.
+    number: Mapped[int] = mapped_column(Integer, unique=True, index=True)
+    title: Mapped[str] = mapped_column(String)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    priority: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # H | M | L
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

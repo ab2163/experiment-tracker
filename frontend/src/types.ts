@@ -75,6 +75,17 @@ export interface SavedCommand {
   created_at: string;
 }
 
+export type Priority = "H" | "M" | "L";
+
+export interface Improvement {
+  id: string;
+  number: number;
+  title: string;
+  description: string | null;
+  priority: Priority | null;
+  created_at: string;
+}
+
 export interface CommandRef {
   id: string;
   name: string;
