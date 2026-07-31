@@ -247,6 +247,7 @@ class Improvement(Base):
     title: Mapped[str] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     priority: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # H | M | L
+    status: Mapped[str] = mapped_column(String, default="unresolved")  # resolved | unresolved
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

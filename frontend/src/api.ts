@@ -8,6 +8,7 @@ import type {
   GraphEdge,
   GraphNode,
   Improvement,
+  ImprovementStatus,
   ImportDbResult,
   Priority,
   ProjectCount,
@@ -295,13 +296,19 @@ export async function createImprovement(payload: {
   title: string;
   description?: string | null;
   priority?: Priority | null;
+  status?: ImprovementStatus;
 }): Promise<Improvement> {
   return jsonOrThrow(await fetch("/api/improvements", POST(payload)));
 }
 
 export async function updateImprovement(
   improvementId: string,
-  payload: { title?: string; description?: string | null; priority?: Priority | null }
+  payload: {
+    title?: string;
+    description?: string | null;
+    priority?: Priority | null;
+    status?: ImprovementStatus;
+  }
 ): Promise<Improvement> {
   return jsonOrThrow(
     await fetch(`/api/improvements/${improvementId}`, { ...POST(payload), method: "PATCH" })

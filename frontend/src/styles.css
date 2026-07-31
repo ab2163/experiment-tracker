@@ -593,6 +593,25 @@ header h1 {
   color: #374151;
   border-color: #d1d5db;
 }
+.status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+.closed-header {
+  margin-top: 20px;
+}
+.closed-header .crumb-link {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  color: var(--muted);
+}
 
 /* --- folders --- */
 .breadcrumb {

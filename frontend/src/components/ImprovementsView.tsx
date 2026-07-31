@@ -5,7 +5,7 @@ import {
   fetchImprovements,
   updateImprovement,
 } from "../api";
-import type { Improvement, Priority } from "../types";
+import type { Improvement, ImprovementStatus, Priority } from "../types";
 import { noAssist } from "../uiHelpers";
 
 const TITLE_MAX = 60;
@@ -18,6 +18,7 @@ export default function ImprovementsView() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Improvement | null>(null);
+  const [showClosed, setShowClosed] = useState(false);
 
   const load = () =>
     fetchImprovements()
@@ -28,6 +29,56 @@ export default function ImprovementsView() {
     load();
   }, []);
 
+  const setStatus = async (imp: Improvement, status: ImprovementStatus) => {
+    try {
+      await updateImprovement(imp.id, { status });
+      await load();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const del = async (imp: Improvement) => {
+    if (!window.confirm(`Delete ticket ${ticketNo(imp.number)}?`)) return;
+    try {
+      await deleteImprovement(imp.id);
+      await load();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const open = improvements.filter((i) => i.status !== "resolved");
+  const closed = improvements.filter((i) => i.status === "resolved");
+
+  const renderTicket = (imp: Improvement) => (
+    <div key={imp.id} className="ticket">
+      <div className="ticket-head">
+        <span className="ticket-no">{ticketNo(imp.number)}</span>
+        {imp.priority && (
+          <span className={`prio prio-${imp.priority}`}>{PRIORITY_LABEL[imp.priority]}</span>
+        )}
+        {imp.status === "resolved" && <span className="status-badge">resolved</span>}
+        <span className="ticket-title">{imp.title}</span>
+        <div className="ticket-actions">
+          <button
+            className="mc-edit"
+            onClick={() => setStatus(imp, imp.status === "resolved" ? "unresolved" : "resolved")}
+          >
+            {imp.status === "resolved" ? "reopen" : "resolve"}
+          </button>
+          <button className="mc-edit" title="Edit ticket" onClick={() => setEditing(imp)}>
+            edit
+          </button>
+          <button className="mc-delete" title="Delete ticket" onClick={() => del(imp)}>
+            ×
+          </button>
+        </div>
+      </div>
+      {imp.description && <div className="ticket-desc">{imp.description}</div>}
+    </div>
+  );
+
   return (
     <div>
       <div className="filters">
@@ -36,42 +87,24 @@ export default function ImprovementsView() {
         </button>
       </div>
       {error && <div className="error">{error}</div>}
-      {improvements.length === 0 && <div className="muted">No improvement tickets yet.</div>}
 
+      <div className="np-section">Open tickets</div>
       <div className="ticket-list">
-        {improvements.map((imp) => (
-          <div key={imp.id} className="ticket">
-            <div className="ticket-head">
-              <span className="ticket-no">{ticketNo(imp.number)}</span>
-              {imp.priority && (
-                <span className={`prio prio-${imp.priority}`}>{PRIORITY_LABEL[imp.priority]}</span>
-              )}
-              <span className="ticket-title">{imp.title}</span>
-              <div className="ticket-actions">
-                <button className="mc-edit" title="Edit ticket" onClick={() => setEditing(imp)}>
-                  edit
-                </button>
-                <button
-                  className="mc-delete"
-                  title="Delete ticket"
-                  onClick={async () => {
-                    if (!window.confirm(`Delete ticket ${ticketNo(imp.number)}?`)) return;
-                    try {
-                      await deleteImprovement(imp.id);
-                      await load();
-                    } catch (err) {
-                      setError(String(err));
-                    }
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-            {imp.description && <div className="ticket-desc">{imp.description}</div>}
-          </div>
-        ))}
+        {open.length === 0 && <div className="muted">No open tickets.</div>}
+        {open.map(renderTicket)}
       </div>
+
+      <div className="np-section closed-header">
+        <button className="crumb-link" onClick={() => setShowClosed((v) => !v)}>
+          {showClosed ? "▾" : "▸"} Closed tickets ({closed.length})
+        </button>
+      </div>
+      {showClosed && (
+        <div className="ticket-list">
+          {closed.length === 0 && <div className="muted">No closed tickets.</div>}
+          {closed.map(renderTicket)}
+        </div>
+      )}
 
       {creating && (
         <ImprovementForm
@@ -108,6 +141,7 @@ function ImprovementForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [priority, setPriority] = useState<Priority | "">(initial?.priority ?? "");
+  const [status, setStatus] = useState<ImprovementStatus>(initial?.status ?? "unresolved");
   const [errors, setErrors] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -123,6 +157,7 @@ function ImprovementForm({
         title: title.trim(),
         description: description.trim() || null,
         priority: priority || null,
+        status,
       };
       if (initial) await updateImprovement(initial.id, payload);
       else await createImprovement(payload);
@@ -163,6 +198,13 @@ function ImprovementForm({
             <option value="H">High</option>
             <option value="M">Medium</option>
             <option value="L">Low</option>
+          </select>
+        </label>
+        <label className="field">
+          <span className="field-label">Status</span>
+          <select value={status} onChange={(e) => setStatus(e.target.value as ImprovementStatus)}>
+            <option value="unresolved">Unresolved</option>
+            <option value="resolved">Resolved</option>
           </select>
         </label>
         {errors.map((msg, i) => (

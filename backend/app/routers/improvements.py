@@ -58,6 +58,7 @@ def create_improvement(payload: ImprovementCreate, db: Session = Depends(get_db)
         title=title,
         description=(payload.description or None),
         priority=payload.priority,
+        status=payload.status,
     )
     db.add(imp)
     db.commit()
@@ -75,6 +76,8 @@ def update_improvement(improvement_id: str, payload: ImprovementUpdate, db: Sess
         imp.description = data["description"] or None
     if "priority" in data:
         imp.priority = data["priority"]
+    if "status" in data and data["status"] is not None:
+        imp.status = data["status"]
     db.commit()
     db.refresh(imp)
     return ImprovementOut.model_validate(imp)

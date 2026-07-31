@@ -88,6 +88,7 @@ export interface SavedCommand {
 }
 
 export type Priority = "H" | "M" | "L";
+export type ImprovementStatus = "resolved" | "unresolved";
 
 export interface Improvement {
   id: string;
@@ -95,6 +96,7 @@ export interface Improvement {
   title: string;
   description: string | null;
   priority: Priority | null;
+  status: ImprovementStatus;
   created_at: string;
 }
 

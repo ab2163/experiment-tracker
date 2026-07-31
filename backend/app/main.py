@@ -65,6 +65,12 @@ def _ensure_columns():
         sc_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(saved_commands)"))}
         if sc_cols and "folder_id" not in sc_cols:
             conn.execute(text("ALTER TABLE saved_commands ADD COLUMN folder_id VARCHAR"))
+        imp_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(improvements)"))}
+        if imp_cols and "status" not in imp_cols:
+            conn.execute(
+                text("ALTER TABLE improvements ADD COLUMN status VARCHAR DEFAULT 'unresolved'")
+            )
+            conn.execute(text("UPDATE improvements SET status='unresolved' WHERE status IS NULL"))
 
 
 def _drop_legacy_graph_tables():

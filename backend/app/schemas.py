@@ -270,18 +270,21 @@ class FolderOut(BaseModel):
 # --- Improvements --------------------------------------------------------
 
 Priority = Literal["H", "M", "L"]
+Status = Literal["resolved", "unresolved"]
 
 
 class ImprovementCreate(BaseModel):
     title: str
     description: Optional[str] = None
     priority: Optional[Priority] = None
+    status: Status = "unresolved"
 
 
 class ImprovementUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     priority: Optional[Priority] = None
+    status: Optional[Status] = None
 
 
 class ImprovementOut(BaseModel):
@@ -292,4 +295,5 @@ class ImprovementOut(BaseModel):
     title: str
     description: Optional[str]
     priority: Optional[Priority]
+    status: Status
     created_at: datetime
