@@ -500,8 +500,10 @@ header h1 {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
 }
-.cmd-modal {
-  width: 1840px;
+/* Higher specificity than the generic `.modal` (which is defined later and
+   would otherwise win the 480px default) so the wider command box applies. */
+.modal.cmd-modal {
+  width: 960px;
 }
 /* Command entries in the node panel read like the run list: same font/size,
    the × remove button in the same relative spot. (Graph node badges unchanged.) */
