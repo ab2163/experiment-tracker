@@ -208,6 +208,22 @@ function RunSetCard({
 
   return (
     <div className={cls} onClick={onOpen}>
+      {!mergeMode && (
+        <div className="mc-move" onClick={(e) => e.stopPropagation()}>
+          <MoveToMenu
+            folders={folders}
+            currentFolderId={runSet.folder_id ?? null}
+            onMove={async (dest) => {
+              try {
+                await moveRunSet(runSet.id, dest);
+                await onChanged();
+              } catch (e) {
+                onError(String(e));
+              }
+            }}
+          />
+        </div>
+      )}
       <div className="mc-top">
         {runSet.short_id && <span className="an-badge mc-badge">{runSet.short_id}</span>}
         <div className="mc-actions">
@@ -216,20 +232,6 @@ function RunSetCard({
           ) : (
             <>
               <span className="mc-count">{runSet.run_count} run{runSet.run_count === 1 ? "" : "s"}</span>
-              <span onClick={(e) => e.stopPropagation()}>
-                <MoveToMenu
-                  folders={folders}
-                  currentFolderId={runSet.folder_id ?? null}
-                  onMove={async (dest) => {
-                    try {
-                      await moveRunSet(runSet.id, dest);
-                      await onChanged();
-                    } catch (e) {
-                      onError(String(e));
-                    }
-                  }}
-                />
-              </span>
               <button
                 className="mc-edit"
                 onClick={(e) => {

@@ -124,22 +124,24 @@ export function FolderCard({
 
   return (
     <div className="card-tile folder-tile" onClick={onOpen}>
+      <div className="mc-move" onClick={(e) => e.stopPropagation()}>
+        <MoveToMenu
+          folders={folders}
+          currentFolderId={folder.parent_id}
+          excludeIds={descendantIds(folders, folder.id)}
+          onMove={async (dest) => {
+            try {
+              await moveFolder(folder.id, dest);
+              await onChanged();
+            } catch (e) {
+              onError(String(e));
+            }
+          }}
+        />
+      </div>
       <div className="mc-top">
         <span className="folder-icon">📁</span>
         <div className="mc-actions" onClick={(e) => e.stopPropagation()}>
-          <MoveToMenu
-            folders={folders}
-            currentFolderId={folder.parent_id}
-            excludeIds={descendantIds(folders, folder.id)}
-            onMove={async (dest) => {
-              try {
-                await moveFolder(folder.id, dest);
-                await onChanged();
-              } catch (e) {
-                onError(String(e));
-              }
-            }}
-          />
           <button
             className="mc-edit"
             onClick={() => {

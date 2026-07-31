@@ -102,20 +102,22 @@ export default function SavedCommandsView({
             className={`card-tile${selected?.id === c.id ? " active-card" : ""}`}
             onClick={() => setSelected(selected?.id === c.id ? null : c)}
           >
+            <div className="mc-move" onClick={(e) => e.stopPropagation()}>
+              <MoveToMenu
+                folders={folders}
+                currentFolderId={c.folder_id ?? null}
+                onMove={async (dest) => {
+                  try {
+                    await moveSavedCommand(c.id, dest);
+                    await load();
+                  } catch (err) {
+                    setError(String(err));
+                  }
+                }}
+              />
+            </div>
             <div className="mc-top">
               <div className="mc-actions" onClick={(e) => e.stopPropagation()}>
-                <MoveToMenu
-                  folders={folders}
-                  currentFolderId={c.folder_id ?? null}
-                  onMove={async (dest) => {
-                    try {
-                      await moveSavedCommand(c.id, dest);
-                      await load();
-                    } catch (err) {
-                      setError(String(err));
-                    }
-                  }}
-                />
                 <button className="mc-edit" title="Edit command" onClick={() => setEditing(c)}>
                   edit
                 </button>
