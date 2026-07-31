@@ -2,17 +2,29 @@ import { useEffect, useState } from "react";
 import {
   addRunsToRunSet,
   deleteRunSet,
+  fetchFolders,
   fetchRunSets,
   mergeRunSets,
+  moveRunSet,
   removeRunFromRunSet,
   renameRunSet,
 } from "../api";
-import type { RunSet } from "../types";
+import type { Folder, RunSet } from "../types";
+import { childFolders } from "../folderUtils";
 import { noAssist } from "../uiHelpers";
 import RunPicker from "./RunPicker";
+import MoveToMenu from "./MoveToMenu";
+import { Breadcrumb, FolderCard, NewFolderControl } from "./FolderChrome";
 
-export default function RunSetsView() {
+export default function RunSetsView({
+  folderId,
+  setFolderId,
+}: {
+  folderId: string | null;
+  setFolderId: (id: string | null) => void;
+}) {
   const [runSets, setRunSets] = useState<RunSet[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [selected, setSelected] = useState<RunSet | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mergeMode, setMergeMode] = useState(false);
@@ -22,8 +34,9 @@ export default function RunSetsView() {
 
   const load = async () => {
     try {
-      const rs = await fetchRunSets();
+      const [rs, fld] = await Promise.all([fetchRunSets(), fetchFolders("run_set")]);
       setRunSets(rs);
+      setFolders(fld);
       setSelected((cur) => (cur ? rs.find((v) => v.id === cur.id) ?? null : null));
     } catch (e) {
       setError(String(e));
@@ -47,7 +60,7 @@ export default function RunSetsView() {
     if (!mergeName.trim() || mergeSel.length < 2) return;
     setMergeBusy(true);
     try {
-      await mergeRunSets({ name: mergeName.trim(), source_ids: mergeSel });
+      await mergeRunSets({ name: mergeName.trim(), source_ids: mergeSel, folder_id: folderId });
       exitMerge();
       await load();
     } catch (e) {
@@ -57,8 +70,21 @@ export default function RunSetsView() {
     }
   };
 
+  const subfolders = childFolders(folders, folderId);
+  const currentRunSets = runSets.filter((rs) => (rs.folder_id ?? null) === folderId);
+
   return (
     <div>
+      <Breadcrumb
+        folders={folders}
+        folderId={folderId}
+        onNavigate={(id) => {
+          setFolderId(id);
+          setSelected(null);
+          exitMerge();
+        }}
+      />
+
       <div className="filters">
         {mergeMode ? (
           <>
@@ -80,30 +106,50 @@ export default function RunSetsView() {
             <button className="clear" onClick={exitMerge} disabled={mergeBusy}>
               Cancel
             </button>
-            <span className="hint">Select two or more sets to copy into a new merged set.</span>
+            <span className="hint">Select two or more sets in this folder to copy into a new merged set.</span>
           </>
         ) : (
-          <button
-            className="clear"
-            onClick={() => {
-              setSelected(null);
-              setMergeMode(true);
-            }}
-            disabled={runSets.length < 2}
-          >
-            Merge sets
-          </button>
+          <>
+            <NewFolderControl kind="run_set" parentId={folderId} onChanged={load} onError={setError} />
+            <button
+              className="clear"
+              onClick={() => {
+                setSelected(null);
+                setMergeMode(true);
+              }}
+              disabled={currentRunSets.length < 2}
+            >
+              Merge sets
+            </button>
+          </>
         )}
       </div>
 
       {error && <div className="error">{error}</div>}
-      {runSets.length === 0 && <div className="muted">No run sets yet.</div>}
+      {subfolders.length === 0 && currentRunSets.length === 0 && (
+        <div className="muted">This folder is empty.</div>
+      )}
 
       <div className="card-grid">
-        {runSets.map((v) => (
+        {!mergeMode &&
+          subfolders.map((f) => (
+            <FolderCard
+              key={f.id}
+              folder={f}
+              folders={folders}
+              onOpen={() => {
+                setFolderId(f.id);
+                setSelected(null);
+              }}
+              onChanged={load}
+              onError={setError}
+            />
+          ))}
+        {currentRunSets.map((v) => (
           <RunSetCard
             key={v.id}
             runSet={v}
+            folders={folders}
             active={selected?.id === v.id}
             mergeMode={mergeMode}
             mergeChecked={mergeSel.includes(v.id)}
@@ -125,6 +171,7 @@ export default function RunSetsView() {
 
 function RunSetCard({
   runSet,
+  folders,
   active,
   mergeMode,
   mergeChecked,
@@ -133,6 +180,7 @@ function RunSetCard({
   onError,
 }: {
   runSet: RunSet;
+  folders: Folder[];
   active: boolean;
   mergeMode: boolean;
   mergeChecked: boolean;
@@ -168,6 +216,20 @@ function RunSetCard({
           ) : (
             <>
               <span className="mc-count">{runSet.run_count} run{runSet.run_count === 1 ? "" : "s"}</span>
+              <span onClick={(e) => e.stopPropagation()}>
+                <MoveToMenu
+                  folders={folders}
+                  currentFolderId={runSet.folder_id ?? null}
+                  onMove={async (dest) => {
+                    try {
+                      await moveRunSet(runSet.id, dest);
+                      await onChanged();
+                    } catch (e) {
+                      onError(String(e));
+                    }
+                  }}
+                />
+              </span>
               <button
                 className="mc-edit"
                 onClick={(e) => {

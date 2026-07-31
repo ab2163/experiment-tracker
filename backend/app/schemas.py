@@ -188,6 +188,7 @@ class ImportDbResult(BaseModel):
 class RunSetCreate(BaseModel):
     name: str
     run_ids: list[str] = []
+    folder_id: Optional[str] = None
 
 
 class RunSetUpdate(BaseModel):
@@ -197,12 +198,14 @@ class RunSetUpdate(BaseModel):
 class RunSetMerge(BaseModel):
     name: str
     source_ids: list[str]
+    folder_id: Optional[str] = None
 
 
 class RunSetOut(BaseModel):
     id: str
     name: str
     short_id: Optional[str] = None
+    folder_id: Optional[str] = None
     created_at: datetime
     run_count: int
     runs: list[RunSummary]
@@ -213,6 +216,7 @@ class RunSetOut(BaseModel):
 class SavedCommandCreate(BaseModel):
     name: str
     command: str
+    folder_id: Optional[str] = None
 
 
 class SavedCommandUpdate(BaseModel):
@@ -226,6 +230,40 @@ class SavedCommandOut(BaseModel):
     id: str
     name: str
     command: str
+    folder_id: Optional[str] = None
+    created_at: datetime
+
+
+# --- Folders -------------------------------------------------------------
+
+FolderKind = Literal["run_set", "command"]
+
+
+class FolderCreate(BaseModel):
+    kind: FolderKind
+    name: str
+    parent_id: Optional[str] = None
+
+
+class FolderRename(BaseModel):
+    name: str
+
+
+class FolderMove(BaseModel):
+    parent_id: Optional[str] = None
+
+
+class FolderItemMove(BaseModel):
+    folder_id: Optional[str] = None
+
+
+class FolderOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    kind: str
+    name: str
+    parent_id: Optional[str]
     created_at: datetime
 
 

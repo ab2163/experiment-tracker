@@ -594,6 +594,47 @@ header h1 {
   border-color: #d1d5db;
 }
 
+/* --- folders --- */
+.breadcrumb {
+  font-size: 13px;
+  margin-bottom: 10px;
+  color: var(--muted);
+}
+.crumb-link {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+}
+.crumb-link:hover {
+  text-decoration: underline;
+}
+.crumb-sep {
+  color: var(--muted);
+}
+.crumb-current {
+  font-weight: 600;
+  color: var(--text, #111827);
+}
+.new-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.folder-tile {
+  background: var(--bg-soft);
+}
+.folder-icon {
+  font-size: 16px;
+}
+.move-select {
+  max-width: 130px;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
 /* --- node side panel --- */
 .node-panel {
   position: absolute;

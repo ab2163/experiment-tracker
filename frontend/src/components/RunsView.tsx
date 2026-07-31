@@ -80,7 +80,7 @@ function MultiSelectFilter({
   );
 }
 
-export default function RunsView() {
+export default function RunsView({ runSetFolderId }: { runSetFolderId: string | null }) {
   const [envOptions, setEnvOptions] = useState<EnvironmentCount[]>([]);
   const [projectOptions, setProjectOptions] = useState<ProjectCount[]>([]);
   const [userOptions, setUserOptions] = useState<UserCount[]>([]);
@@ -224,7 +224,7 @@ export default function RunsView() {
           count={pendingRunSetIds.length}
           onClose={() => setPendingRunSetIds(null)}
           onCreate={async (name) => {
-            await createRunSet({ name, run_ids: pendingRunSetIds });
+            await createRunSet({ name, run_ids: pendingRunSetIds, folder_id: runSetFolderId });
             setPendingRunSetIds(null);
           }}
         />

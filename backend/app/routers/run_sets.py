@@ -1,15 +1,32 @@
 """Run sets — user-curated named lists of runs, independent of the graph."""
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Run, RunSet, RunSetRun, gen_short_id
-from ..schemas import RunSetCreate, RunSetMerge, RunSetOut, RunSetUpdate, RunSummary
+from ..models import Folder, Run, RunSet, RunSetRun, gen_short_id
+from ..schemas import (
+    FolderItemMove,
+    RunSetCreate,
+    RunSetMerge,
+    RunSetOut,
+    RunSetUpdate,
+    RunSummary,
+)
 
 router = APIRouter(prefix="/api/run-sets", tags=["run-sets"])
+
+
+def _validate_folder(db: Session, folder_id: Optional[str]) -> None:
+    if folder_id is None:
+        return
+    folder = db.get(Folder, folder_id)
+    if not folder or folder.kind != "run_set":
+        raise HTTPException(400, "Target folder is not a valid run-set folder.")
 
 
 def _unique_short_id(db: Session) -> str:
@@ -27,6 +44,7 @@ def _run_set_out(run_set: RunSet) -> RunSetOut:
         id=run_set.id,
         name=run_set.name,
         short_id=run_set.short_id,
+        folder_id=run_set.folder_id,
         created_at=run_set.created_at,
         run_count=len(runs),
         runs=[RunSummary.model_validate(r) for r in runs],
@@ -60,7 +78,10 @@ def create_run_set(payload: RunSetCreate, db: Session = Depends(get_db)):
     if not payload.name.strip():
         raise HTTPException(400, "A run set name is required.")
     _validate_runs(db, payload.run_ids)
-    run_set = RunSet(name=payload.name.strip(), short_id=_unique_short_id(db))
+    _validate_folder(db, payload.folder_id)
+    run_set = RunSet(
+        name=payload.name.strip(), short_id=_unique_short_id(db), folder_id=payload.folder_id
+    )
     db.add(run_set)
     db.flush()
     for run_id in dict.fromkeys(payload.run_ids):
@@ -79,13 +100,16 @@ def merge_run_sets(payload: RunSetMerge, db: Session = Depends(get_db)):
         raise HTTPException(400, "A run set name is required.")
     if len(payload.source_ids) < 2:
         raise HTTPException(400, "Select at least two run sets to merge.")
+    _validate_folder(db, payload.folder_id)
     run_ids: list[str] = []
     for sid in payload.source_ids:
         src = db.get(RunSet, sid)
         if not src:
             raise HTTPException(404, f"Run set not found: {sid}")
         run_ids.extend(link.run_id for link in src.run_links)
-    merged = RunSet(name=payload.name.strip(), short_id=_unique_short_id(db))
+    merged = RunSet(
+        name=payload.name.strip(), short_id=_unique_short_id(db), folder_id=payload.folder_id
+    )
     db.add(merged)
     db.flush()
     for run_id in dict.fromkeys(run_ids):  # union, deduped, order-preserving
@@ -122,6 +146,16 @@ def add_runs(run_set_id: str, run_ids: list[str], db: Session = Depends(get_db))
     for run_id in dict.fromkeys(run_ids):
         if run_id not in existing:
             db.add(RunSetRun(run_set_id=run_set.id, run_id=run_id))
+    db.commit()
+    db.refresh(run_set)
+    return _run_set_out(run_set)
+
+
+@router.patch("/{run_set_id}/folder", response_model=RunSetOut)
+def move_run_set(run_set_id: str, payload: FolderItemMove, db: Session = Depends(get_db)):
+    run_set = _get_run_set(db, run_set_id)
+    _validate_folder(db, payload.folder_id)
+    run_set.folder_id = payload.folder_id
     db.commit()
     db.refresh(run_set)
     return _run_set_out(run_set)

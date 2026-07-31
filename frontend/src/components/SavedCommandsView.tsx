@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import {
   createSavedCommand,
   deleteSavedCommand,
+  fetchFolders,
   fetchSavedCommands,
+  moveSavedCommand,
   updateSavedCommand,
 } from "../api";
-import type { SavedCommand } from "../types";
+import type { Folder, SavedCommand } from "../types";
+import { childFolders } from "../folderUtils";
 import { noAssist } from "../uiHelpers";
+import MoveToMenu from "./MoveToMenu";
+import { Breadcrumb, FolderCard, NewFolderControl } from "./FolderChrome";
 
 const NAME_MAX = 60;
 
@@ -18,6 +23,8 @@ export default function SavedCommandsView({
   onConsumedOpen?: () => void;
 }) {
   const [commands, setCommands] = useState<SavedCommand[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [folderId, setFolderId] = useState<string | null>(null);
   const [selected, setSelected] = useState<SavedCommand | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -25,8 +32,9 @@ export default function SavedCommandsView({
 
   const load = async () => {
     try {
-      const cmds = await fetchSavedCommands();
+      const [cmds, fld] = await Promise.all([fetchSavedCommands(), fetchFolders("command")]);
       setCommands(cmds);
+      setFolders(fld);
       setSelected((cur) => (cur ? cmds.find((c) => c.id === cur.id) ?? null : null));
     } catch (e) {
       setError(String(e));
@@ -37,51 +45,84 @@ export default function SavedCommandsView({
     load();
   }, []);
 
-  // A node deep-linked into a specific command: open it once, then clear the
-  // request so navigating away and back doesn't re-open it.
+  // A node deep-linked into a specific command: navigate to its folder, open it,
+  // then clear the request so it doesn't re-open on later visits.
   useEffect(() => {
     if (!openCommandId) return;
     const target = commands.find((c) => c.id === openCommandId);
     if (target) {
+      setFolderId(target.folder_id ?? null);
       setSelected(target);
       onConsumedOpen?.();
     }
   }, [openCommandId, commands, onConsumedOpen]);
 
+  const subfolders = childFolders(folders, folderId);
+  const currentCommands = commands.filter((c) => (c.folder_id ?? null) === folderId);
+
   return (
     <div>
+      <Breadcrumb
+        folders={folders}
+        folderId={folderId}
+        onNavigate={(id) => {
+          setFolderId(id);
+          setSelected(null);
+        }}
+      />
+
       <div className="filters">
         <button className="primary" onClick={() => setCreating(true)}>
           + New command
         </button>
+        <NewFolderControl kind="command" parentId={folderId} onChanged={load} onError={setError} />
       </div>
       {error && <div className="error">{error}</div>}
-      {commands.length === 0 && <div className="muted">No saved commands yet.</div>}
+      {subfolders.length === 0 && currentCommands.length === 0 && (
+        <div className="muted">This folder is empty.</div>
+      )}
 
       <div className="card-grid">
-        {commands.map((c) => (
+        {subfolders.map((f) => (
+          <FolderCard
+            key={f.id}
+            folder={f}
+            folders={folders}
+            onOpen={() => {
+              setFolderId(f.id);
+              setSelected(null);
+            }}
+            onChanged={load}
+            onError={setError}
+          />
+        ))}
+        {currentCommands.map((c) => (
           <div
             key={c.id}
             className={`card-tile${selected?.id === c.id ? " active-card" : ""}`}
             onClick={() => setSelected(selected?.id === c.id ? null : c)}
           >
             <div className="mc-top">
-              <div className="mc-actions">
-                <button
-                  className="mc-edit"
-                  title="Edit command"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditing(c);
+              <div className="mc-actions" onClick={(e) => e.stopPropagation()}>
+                <MoveToMenu
+                  folders={folders}
+                  currentFolderId={c.folder_id ?? null}
+                  onMove={async (dest) => {
+                    try {
+                      await moveSavedCommand(c.id, dest);
+                      await load();
+                    } catch (err) {
+                      setError(String(err));
+                    }
                   }}
-                >
+                />
+                <button className="mc-edit" title="Edit command" onClick={() => setEditing(c)}>
                   edit
                 </button>
                 <button
                   className="mc-delete"
                   title="Delete command"
-                  onClick={async (e) => {
-                    e.stopPropagation();
+                  onClick={async () => {
                     if (!window.confirm("Delete this command? It will be removed from any nodes using it."))
                       return;
                     try {
@@ -105,6 +146,7 @@ export default function SavedCommandsView({
 
       {creating && (
         <CommandForm
+          folderId={folderId}
           onClose={() => setCreating(false)}
           onSaved={async () => {
             setCreating(false);
@@ -160,10 +202,12 @@ function CommandDetail({
 
 function CommandForm({
   initial,
+  folderId,
   onClose,
   onSaved,
 }: {
   initial?: SavedCommand;
+  folderId?: string | null;
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
@@ -185,7 +229,7 @@ function CommandForm({
     try {
       const payload = { name: name.trim(), command: command.trim() };
       if (initial) await updateSavedCommand(initial.id, payload);
-      else await createSavedCommand(payload);
+      else await createSavedCommand({ ...payload, folder_id: folderId ?? null });
       await onSaved();
     } catch (e) {
       setErrors([String(e)]);

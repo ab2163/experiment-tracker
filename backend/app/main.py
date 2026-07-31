@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 from .db import Base, engine
 from .models import gen_short_id
-from .routers import experiments, improvements, run_sets, runs, saved_commands, sync
+from .routers import experiments, folders, improvements, run_sets, runs, saved_commands, sync
 
 app = FastAPI(title="Experiment Tracker", version="0.1.0")
 
@@ -25,6 +25,7 @@ app.include_router(sync.router)
 app.include_router(run_sets.router)
 app.include_router(saved_commands.router)
 app.include_router(improvements.router)
+app.include_router(folders.router)
 
 
 def _ensure_columns():
@@ -59,6 +60,11 @@ def _ensure_columns():
                     text("UPDATE run_sets SET short_id = :s WHERE id = :i"),
                     {"s": sid, "i": rs_id},
                 )
+        if rs_cols and "folder_id" not in rs_cols:
+            conn.execute(text("ALTER TABLE run_sets ADD COLUMN folder_id VARCHAR"))
+        sc_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(saved_commands)"))}
+        if sc_cols and "folder_id" not in sc_cols:
+            conn.execute(text("ALTER TABLE saved_commands ADD COLUMN folder_id VARCHAR"))
 
 
 def _drop_legacy_graph_tables():

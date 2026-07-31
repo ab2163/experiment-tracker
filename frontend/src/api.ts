@@ -2,6 +2,8 @@ import type {
   EnvironmentCount,
   Experiment,
   ExperimentKind,
+  Folder,
+  FolderKind,
   Graph,
   GraphEdge,
   GraphNode,
@@ -210,12 +212,26 @@ export async function fetchRunSets(): Promise<RunSet[]> {
   return jsonOrThrow(await fetch("/api/run-sets"));
 }
 
-export async function createRunSet(payload: { name: string; run_ids: string[] }): Promise<RunSet> {
+export async function createRunSet(payload: {
+  name: string;
+  run_ids: string[];
+  folder_id?: string | null;
+}): Promise<RunSet> {
   return jsonOrThrow(await fetch("/api/run-sets", POST(payload)));
 }
 
-export async function mergeRunSets(payload: { name: string; source_ids: string[] }): Promise<RunSet> {
+export async function mergeRunSets(payload: {
+  name: string;
+  source_ids: string[];
+  folder_id?: string | null;
+}): Promise<RunSet> {
   return jsonOrThrow(await fetch("/api/run-sets/merge", POST(payload)));
+}
+
+export async function moveRunSet(runSetId: string, folderId: string | null): Promise<RunSet> {
+  return jsonOrThrow(
+    await fetch(`/api/run-sets/${runSetId}/folder`, { ...POST({ folder_id: folderId }), method: "PATCH" })
+  );
 }
 
 export async function renameRunSet(runSetId: string, name: string): Promise<RunSet> {
@@ -240,8 +256,21 @@ export async function fetchSavedCommands(): Promise<SavedCommand[]> {
   return jsonOrThrow(await fetch("/api/saved-commands"));
 }
 
-export async function createSavedCommand(payload: { name: string; command: string }): Promise<SavedCommand> {
+export async function createSavedCommand(payload: {
+  name: string;
+  command: string;
+  folder_id?: string | null;
+}): Promise<SavedCommand> {
   return jsonOrThrow(await fetch("/api/saved-commands", POST(payload)));
+}
+
+export async function moveSavedCommand(commandId: string, folderId: string | null): Promise<SavedCommand> {
+  return jsonOrThrow(
+    await fetch(`/api/saved-commands/${commandId}/folder`, {
+      ...POST({ folder_id: folderId }),
+      method: "PATCH",
+    })
+  );
 }
 
 export async function updateSavedCommand(
@@ -282,4 +311,33 @@ export async function updateImprovement(
 export async function deleteImprovement(improvementId: string): Promise<void> {
   const res = await fetch(`/api/improvements/${improvementId}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Failed to delete improvement: ${res.status}`);
+}
+
+export async function fetchFolders(kind: FolderKind): Promise<Folder[]> {
+  return jsonOrThrow(await fetch(`/api/folders?kind=${kind}`));
+}
+
+export async function createFolder(payload: {
+  kind: FolderKind;
+  name: string;
+  parent_id?: string | null;
+}): Promise<Folder> {
+  return jsonOrThrow(await fetch("/api/folders", POST(payload)));
+}
+
+export async function renameFolder(folderId: string, name: string): Promise<Folder> {
+  return jsonOrThrow(
+    await fetch(`/api/folders/${folderId}`, { ...POST({ name }), method: "PATCH" })
+  );
+}
+
+export async function moveFolder(folderId: string, parentId: string | null): Promise<Folder> {
+  return jsonOrThrow(
+    await fetch(`/api/folders/${folderId}/move`, { ...POST({ parent_id: parentId }), method: "PATCH" })
+  );
+}
+
+export async function deleteFolder(folderId: string): Promise<void> {
+  const res = await fetch(`/api/folders/${folderId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Failed to delete folder: ${res.status}`);
 }

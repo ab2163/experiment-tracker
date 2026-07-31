@@ -12,6 +12,9 @@ export default function App() {
   // When a node's command name is clicked, jump to the Saved commands tab and
   // open that command.
   const [openCommandId, setOpenCommandId] = useState<string | null>(null);
+  // The run-sets folder currently open in the Run sets tab. Lifted here so a run
+  // set created from the Runs tab lands in the folder scope that's open.
+  const [runSetFolderId, setRunSetFolderId] = useState<string | null>(null);
 
   const openCommand = useCallback((commandId: string) => {
     setOpenCommandId(commandId);
@@ -50,8 +53,10 @@ export default function App() {
         </nav>
       </header>
 
-      {tab === "runs" && <RunsView />}
-      {tab === "run-sets" && <RunSetsView />}
+      {tab === "runs" && <RunsView runSetFolderId={runSetFolderId} />}
+      {tab === "run-sets" && (
+        <RunSetsView folderId={runSetFolderId} setFolderId={setRunSetFolderId} />
+      )}
       {tab === "experiments" && <ExperimentsView onOpenCommand={openCommand} />}
       {tab === "commands" && (
         <SavedCommandsView

@@ -169,6 +169,9 @@ class RunSet(Base):
     # Short, stable, human-readable handle shown as the node/card badge. Unique
     # across run sets (enforced in the router at create/merge time).
     short_id: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True, nullable=True)
+    # Containing folder (null = root). Soft reference managed in the router;
+    # deleting a folder deletes its run sets (see routers/folders.py).
+    folder_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     run_links: Mapped[list["RunSetRun"]] = relationship(
@@ -199,6 +202,9 @@ class SavedCommand(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String, unique=True, index=True)
     command: Mapped[str] = mapped_column(Text)
+    # Containing folder (null = root). Soft reference managed in the router;
+    # deleting a folder deletes its commands (see routers/folders.py).
+    folder_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -241,4 +247,21 @@ class Improvement(Base):
     title: Mapped[str] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     priority: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # H | M | L
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Folders — recursive grouping for run sets and saved commands. One tree per
+# `kind` ("run_set" | "command"). Names are unique among siblings (same kind +
+# parent), enforced in the router. Deleting a folder cascades to its subfolders
+# and to the run sets / commands it contains (handled in routers/folders.py).
+# ---------------------------------------------------------------------------
+
+class Folder(Base):
+    __tablename__ = "folders"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    kind: Mapped[str] = mapped_column(String, index=True)  # run_set | command
+    name: Mapped[str] = mapped_column(String)
+    parent_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

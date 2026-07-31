@@ -41,9 +41,20 @@ export interface RunSet {
   id: string;
   name: string;
   short_id: string | null;
+  folder_id: string | null;
   created_at: string;
   run_count: number;
   runs: RunSummary[];
+}
+
+export type FolderKind = "run_set" | "command";
+
+export interface Folder {
+  id: string;
+  kind: FolderKind;
+  name: string;
+  parent_id: string | null;
+  created_at: string;
 }
 
 export type ExperimentKind = "linear" | "pr" | "freeform";
@@ -72,6 +83,7 @@ export interface SavedCommand {
   id: string;
   name: string;
   command: string;
+  folder_id: string | null;
   created_at: string;
 }
 
