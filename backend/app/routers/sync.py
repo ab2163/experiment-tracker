@@ -3,7 +3,7 @@
 Three ways to grow the local `runs` table without ever overwriting a run that is
 already stored (matched by primary key `entity/project/run_id`):
   * POST /api/sync/wandb      — pull WandB runs created in a [since, until] window
-  * POST /api/sync/import-db  — merge the `runs` table from an uploaded ablation.db
+  * POST /api/sync/import-db  — merge the `runs` table from an uploaded DB file
   * GET  /api/sync/status     — latest stored run timestamp + total count
 
 The "sync to now" button in the UI is just POST /wandb with since = the latest
@@ -136,7 +136,7 @@ def _coerce_run_row(row: dict, cols: set[str]) -> dict:
 
 @router.post("/import-db", response_model=ImportDbResult)
 async def import_db(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    """Add-only merge of the `runs` table from an uploaded ablation.db (SQLite)."""
+    """Add-only merge of the `runs` table from an uploaded DB file (SQLite)."""
     data = await file.read()
     if not data:
         raise HTTPException(400, "Uploaded file is empty.")
@@ -152,7 +152,7 @@ async def import_db(file: UploadFile = File(...), db: Session = Depends(get_db))
                 r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")
             }
             if "runs" not in tables:
-                raise HTTPException(400, "Uploaded file has no 'runs' table — not an ablation.db.")
+                raise HTTPException(400, "Uploaded file has no 'runs' table — not a valid database file.")
             cols = {c.name for c in Run.__table__.columns}
             src_rows = [dict(r) for r in con.execute("SELECT * FROM runs")]
         finally:

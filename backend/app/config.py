@@ -9,8 +9,9 @@ class Settings(BaseSettings):
     wandb_base_url: str = "https://api.wandb.ai/graphql"
     wandb_entity: str = ""  # your WandB team/entity, e.g. "my-team"
 
-    # DB — swap to postgresql://user:pass@host/db in production
-    database_url: str = "sqlite:///./ablation.db"
+    # DB — swap to postgresql://user:pass@host/db in production. Back this file up
+    # periodically; it holds all runs, experiments, run sets, commands and tickets.
+    database_url: str = "sqlite:///./experiment_data.db"
 
     # Ingest window (ISO8601). Runs created before this are ignored.
     ingest_since: str = "2026-07-01T00:00:00Z"

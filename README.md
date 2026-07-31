@@ -98,7 +98,7 @@ All via environment variables (or a `.env` file in `backend/`, see
 |---|---|
 | `WANDB_API_KEY` | Your WandB API key (required to ingest). |
 | `WANDB_ENTITY` | Your WandB team/entity to scan. |
-| `DATABASE_URL` | `sqlite:///./ablation.db` (default) or a Postgres URL. |
+| `DATABASE_URL` | `sqlite:///./experiment_data.db` (default) or a Postgres URL. Back this file up periodically — it holds all your data. |
 | `INGEST_SINCE` | ISO8601 cutoff; runs created before this are ignored. |
 | `INGEST_WORKERS` | Parallel project scanners during ingest. |
 
