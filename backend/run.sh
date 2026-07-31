@@ -37,10 +37,8 @@ fi
 
 # 3. Decide whether to ingest. Auto-ingest only when the local DB doesn't exist
 #    yet (first run). Assumes the default sqlite DB path; adjust if you changed
-#    DATABASE_URL. The legacy name (ablation.db) also counts as an existing DB —
-#    it's auto-renamed to experiment_data.db on startup.
+#    DATABASE_URL.
 DB="experiment_data.db"
-LEGACY_DB="ablation.db"
 mode="auto"
 for arg in "$@"; do
   case "$arg" in
@@ -52,7 +50,7 @@ done
 need_ingest=0
 if [ "$mode" = "force" ]; then
   need_ingest=1
-elif [ "$mode" = "auto" ] && [ ! -f "$DB" ] && [ ! -f "$LEGACY_DB" ]; then
+elif [ "$mode" = "auto" ] && [ ! -f "$DB" ]; then
   need_ingest=1
 fi
 

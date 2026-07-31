@@ -91,22 +91,7 @@ def _drop_legacy_graph_tables():
                 conn.execute(text(f"DROP TABLE IF EXISTS {t}"))
 
 
-def _migrate_db_filename():
-    """One-time rename of the legacy DB file (ablation.db) to the current default
-    (experiment_data.db). Only fires for the default sqlite path when the new file
-    doesn't exist yet and the old one does — so no data is created or lost."""
-    if not engine.url.get_backend_name().startswith("sqlite"):
-        return
-    path = engine.url.database
-    if not path or os.path.basename(path) != "experiment_data.db" or os.path.exists(path):
-        return
-    legacy = os.path.join(os.path.dirname(path) or ".", "ablation.db")
-    if os.path.exists(legacy):
-        os.rename(legacy, path)
-
-
 def _init_db():
-    _migrate_db_filename()
     _drop_legacy_graph_tables()
     Base.metadata.create_all(engine)
     _ensure_columns()
