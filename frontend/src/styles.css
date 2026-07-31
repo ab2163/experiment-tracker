@@ -487,8 +487,10 @@ header h1 {
   overflow-x: auto;
 }
 /* Editing box matches the read-only .cmd-box formatting (monospace, padding,
-   soft background), sized ~4x taller and ~2x wider (via .cmd-modal). */
-.cmd-input {
+   soft background), sized ~4x taller and ~2x wider (via .cmd-modal). The
+   selector is scoped through .field to outrank the generic `.field textarea`
+   rule, which would otherwise reset font-family/size back to the sans default. */
+.field textarea.cmd-input {
   width: 100%;
   min-height: 480px;
   border: 1px solid var(--border);
