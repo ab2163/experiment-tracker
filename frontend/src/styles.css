@@ -501,7 +501,7 @@ header h1 {
   font-size: 13px;
 }
 .cmd-modal {
-  width: 920px;
+  width: 1840px;
 }
 /* Command entries in the node panel read like the run list: same font/size,
    the × remove button in the same relative spot. (Graph node badges unchanged.) */
