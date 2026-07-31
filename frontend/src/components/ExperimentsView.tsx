@@ -57,7 +57,7 @@ export default function ExperimentsView({
 
       <div className="card-grid">
         {experiments.map((m) => (
-          <div key={m.id} className="card-tile" onClick={() => setSelected(m)}>
+          <div key={m.id} className="card-tile item-card" onClick={() => setSelected(m)}>
             <div className="mc-top">
               {m.kind !== "freeform" && <span className={`kind kind-${m.kind}`}>{m.kind}</span>}
               <div className="mc-actions">

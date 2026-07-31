@@ -658,8 +658,8 @@ header h1 {
 .mc-move {
   margin-bottom: 8px;
 }
-/* Left-align the badge/count/rename/× row on run-set, command and folder cards
-   (overrides the default right-pushed actions). Experiment cards are unaffected. */
+/* Left-align the badge/count/rename/× row on the card tiles (run sets,
+   commands, folders, experiments); overrides the default right-pushed actions. */
 .item-card .mc-top {
   justify-content: flex-start;
 }
