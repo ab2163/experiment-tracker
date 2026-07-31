@@ -193,7 +193,7 @@ export default function RunTable({
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((h) => (
-                <th key={h.id} onClick={h.column.getToggleSortingHandler()}>
+                <th key={h.id} className={`col-${h.column.id}`} onClick={h.column.getToggleSortingHandler()}>
                   {flexRender(h.column.columnDef.header, h.getContext())}
                   {{ asc: " ↑", desc: " ↓" }[h.column.getIsSorted() as string] ?? ""}
                 </th>
@@ -205,9 +205,18 @@ export default function RunTable({
           {table.getRowModel().rows.map((row) => (
             <Fragment key={row.id}>
               <tr>
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  const v = cell.getValue();
+                  return (
+                    <td
+                      key={cell.id}
+                      className={`col-${cell.column.id}`}
+                      title={typeof v === "string" ? v : undefined}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  );
+                })}
               </tr>
               {expanded[row.original.id] && (
                 <tr className="hp-row">

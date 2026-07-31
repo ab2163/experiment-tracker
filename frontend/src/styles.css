@@ -123,6 +123,46 @@ header h1 {
   letter-spacing: 0.03em;
 }
 
+/* Cap the width of the wide free-text columns and truncate with an ellipsis;
+   the full value is available via the cell's title tooltip on hover. */
+.run-table td.col-run,
+.run-table td.col-environment,
+.run-table td.col-project,
+.run-table td.col-user,
+.run-table td.col-commit {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.run-table th.col-run,
+.run-table td.col-run {
+  max-width: 260px;
+}
+.run-table th.col-environment,
+.run-table td.col-environment {
+  max-width: 240px;
+}
+.run-table th.col-project,
+.run-table td.col-project {
+  max-width: 200px;
+}
+.run-table th.col-user,
+.run-table td.col-user {
+  max-width: 140px;
+}
+.run-table th.col-commit,
+.run-table td.col-commit {
+  max-width: 110px;
+}
+/* The run link is an inline <a>; make it truncate with its cell. */
+.run-table td.col-run .run-link {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .run-link {
   color: var(--accent);
   text-decoration: none;
