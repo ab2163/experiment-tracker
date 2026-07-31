@@ -202,7 +202,7 @@ function RunSetCard({
     }
   };
 
-  const cls = ["card-tile", active ? "active-card" : "", mergeChecked ? "merge-checked" : ""]
+  const cls = ["card-tile", "item-card", active ? "active-card" : "", mergeChecked ? "merge-checked" : ""]
     .filter(Boolean)
     .join(" ");
 

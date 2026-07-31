@@ -99,7 +99,7 @@ export default function SavedCommandsView({
         {currentCommands.map((c) => (
           <div
             key={c.id}
-            className={`card-tile${selected?.id === c.id ? " active-card" : ""}`}
+            className={`card-tile item-card${selected?.id === c.id ? " active-card" : ""}`}
             onClick={() => setSelected(selected?.id === c.id ? null : c)}
           >
             <div className="mc-move" onClick={(e) => e.stopPropagation()}>

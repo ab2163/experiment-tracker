@@ -123,7 +123,7 @@ export function FolderCard({
   };
 
   return (
-    <div className="card-tile folder-tile" onClick={onOpen}>
+    <div className="card-tile folder-tile item-card" onClick={onOpen}>
       <div className="mc-move" onClick={(e) => e.stopPropagation()}>
         <MoveToMenu
           folders={folders}

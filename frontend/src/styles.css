@@ -658,6 +658,17 @@ header h1 {
 .mc-move {
   margin-bottom: 8px;
 }
+/* Left-align the badge/count/rename/× row on run-set, command and folder cards
+   (overrides the default right-pushed actions). Experiment cards are unaffected. */
+.item-card .mc-top {
+  justify-content: flex-start;
+}
+.item-card .mc-actions {
+  margin-left: 0;
+}
+.item-card .mc-delete {
+  margin-left: 0;
+}
 
 /* --- node side panel --- */
 .node-panel {
