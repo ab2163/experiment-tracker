@@ -1,0 +1,119 @@
+{
+  "version": "1",
+  "sources": [
+    {
+      "key": "runs",
+      "schemaId": "experiment_tracker_core",
+      "query": "subgraph-nodes",
+      "params": { "subgraphId": "default", "nodeType": "Run", "limit": 200 }
+    },
+    {
+      "key": "experiments",
+      "schemaId": "experiment_tracker_core",
+      "query": "subgraph-nodes",
+      "params": { "subgraphId": "default", "nodeType": "Experiment", "limit": 200 }
+    },
+    {
+      "key": "stages",
+      "schemaId": "experiment_tracker_core",
+      "query": "subgraph-nodes",
+      "params": { "subgraphId": "default", "nodeType": "Stage", "limit": 200 }
+    },
+    {
+      "key": "runSets",
+      "schemaId": "experiment_tracker_core",
+      "query": "subgraph-nodes",
+      "params": { "subgraphId": "default", "nodeType": "RunSet", "limit": 200 }
+    },
+    {
+      "key": "commands",
+      "schemaId": "experiment_tracker_core",
+      "query": "subgraph-nodes",
+      "params": { "subgraphId": "default", "nodeType": "SavedCommand", "limit": 200 }
+    },
+    {
+      "key": "hasStage",
+      "schemaId": "experiment_tracker_core",
+      "query": "subgraph-edges",
+      "params": { "subgraphId": "default", "edgeType": "HAS_STAGE", "limit": 200 }
+    },
+    {
+      "key": "runSetRuns",
+      "schemaId": "experiment_tracker_core",
+      "query": "subgraph-edges",
+      "params": { "subgraphId": "default", "edgeType": "RUN_SET_HAS_RUN", "limit": 200 }
+    },
+    {
+      "key": "improvements",
+      "schemaId": "experiment_tracker_core",
+      "query": "subgraph-nodes",
+      "params": { "subgraphId": "default", "nodeType": "Improvement", "limit": 200 }
+    },
+    {
+      "key": "folders",
+      "schemaId": "experiment_tracker_core",
+      "query": "subgraph-nodes",
+      "params": { "subgraphId": "default", "nodeType": "Folder", "limit": 200 }
+    }
+  ],
+  "actions": {
+    "createRunSet": {
+      "kind": "create-node",
+      "schemaId": "experiment_tracker_core",
+      "node_type": "RunSet",
+      "subgraph_id": "default"
+    },
+    "createCommand": {
+      "kind": "create-node",
+      "schemaId": "experiment_tracker_core",
+      "node_type": "SavedCommand",
+      "subgraph_id": "default"
+    },
+    "createFolder": {
+      "kind": "create-node",
+      "schemaId": "experiment_tracker_core",
+      "node_type": "Folder",
+      "subgraph_id": "default"
+    },
+    "createExperiment": {
+      "kind": "create-node",
+      "schemaId": "experiment_tracker_core",
+      "node_type": "Experiment",
+      "subgraph_id": "default"
+    },
+    "createStage": {
+      "kind": "create-node",
+      "schemaId": "experiment_tracker_core",
+      "node_type": "Stage",
+      "subgraph_id": "default"
+    },
+    "updateNode": {
+      "kind": "update-node",
+      "schemaId": "experiment_tracker_core"
+    },
+    "deleteNode": {
+      "kind": "delete-node",
+      "schemaId": "experiment_tracker_core"
+    },
+    "createImprovement": {
+      "kind": "create-node",
+      "schemaId": "experiment_tracker_core",
+      "node_type": "Improvement",
+      "subgraph_id": "default"
+    },
+    "updateImprovement": {
+      "kind": "update-node",
+      "schemaId": "experiment_tracker_core"
+    },
+    "deleteImprovement": {
+      "kind": "delete-node",
+      "schemaId": "experiment_tracker_core"
+    }
+  },
+  "context": {
+    "keys": ["tab", "focused"]
+  },
+  "identity": {
+    "fields": ["id", "email"]
+  }
+}
