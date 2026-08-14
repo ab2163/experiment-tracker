@@ -68,6 +68,27 @@ PROTOCOLS §6; the experiment create-vs-update rule in §7.
    ([reference/errors.md](reference/errors.md)) and write a `RunFailure`
    (PROTOCOLS §5).
 
+## Keep this skill current (self-improvement — do this every time)
+
+**This skill is a living contract: every issue or learning from using it must be folded
+back in.** When a run, submission, or graph write teaches you something the docs didn't
+already say — a new failure mode and its fix, a corrected fact (e.g. "3 estimators" was
+really 4), a missing sizing rule, a runtime papercut you had to work around — **update
+the canonical source** in the same session, before you finish:
+
+- Put the fact where it belongs: `reference/errors.md` (a new failure + `category` +
+  fix), `reference/submission.md` (syntax/sizing/config), `reference/clusters.md`
+  (cluster facts), `PROTOCOLS.md` (only if the contract itself changes), or a script
+  (`scripts/env.sh`, `preflight.py`, …) when the fix is executable.
+- Edit the canonical tree `ablation-tracker/skills/optprime-runs/`, then sync the
+  installed copy under `.claude/skills/optprime-runs/` (and redeploy `env.sh` to
+  `/shared/optprime-runs/env.sh` if you changed it). Offer to commit + push.
+- Prefer a durable fix (code/doc) over a one-off workaround, so the next agent never
+  hits the same wall. If a failure was platform-side, still record it (RunFailure §5)
+  **and** note the diagnosis here so it's recognised instantly next time.
+
+Treat "I had to look this up / I got surprised" as a signal to write it down.
+
 ## Reference index
 
 | File | What's in it |

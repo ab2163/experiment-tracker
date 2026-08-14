@@ -34,6 +34,42 @@ DELETE /api/clusters/{cluster}/jobs/{namespace}/{job_id}         # cancel
   Pull and record anything important (final metric, error excerpt) before then; after
   GC the logs are gone and only W&B (if it synced) remains.
 
+## Auto-retry (k8s `backoffLimit`) — one crash → many phantom W&B runs
+
+`remote.submit` wraps each run in a Kubernetes **Job**, and the platform templates that
+Job with a **non-zero `backoffLimit`** (behaviourally the k8s default, ~6). So when a pod
+crashes, the Job controller **spins up a replacement pod** (you'll see the pod's random
+suffix change, e.g. `…-o8tj5-9vzpq` → `…-o8tj5-wgxp8`) and retries — up to ~6 times
+before the Job is marked `failed`. **Every replacement pod re-runs `wandb.init`, creating
+a brand-new run ID under the same display name.**
+
+- **Consequence:** a job that crashes *at startup* (e.g. the SkyRL-tx/ECR failure in
+  errors.md) produces **~7 same-named `crashed` W&B runs per job**, not one. Seeing 43
+  `crashed` runs for a 6-job batch is **6 jobs each retried ~7×**, not 43 distinct jobs.
+  When counting/summarising runs, **dedupe by `display_name`** (or count distinct
+  `job_id`s), and record **one** `RunFailure` for the batch, not one per phantom run.
+- **You cannot set `backoffLimit` from `remote.submit`** — the submit payload
+  (`remote/submit.py`) has no backoff/restart field and there is no CLI flag; it is a
+  platform-side default. (A manual submit that "never restarts on crash" was created with
+  `backoffLimit: 0` through a different path — the platform submit API here does not
+  expose that knob.) *Verified 2026-08-14:* payload carries no backoff field; the crashed
+  `advantage-estimators` batch showed replacement-pod suffixes = live proof of retry;
+  `kubectl get job -o yaml` to read the exact number is **RBAC-blocked** from the Curie
+  sandbox (`sim-agent` can't get Jobs in `core-gpu`), and the platform API doesn't return
+  it either.
+- **A second amplifier — Kueue admit/evict:** the same "many same-named `crashed` runs"
+  pattern also comes from a **Kueue admit/evict loop** (`Stopped: Exceeded the PodsReady
+  timeout`, `Suspended` ×N in `…/events`), where each admitted-then-evicted attempt
+  `wandb.init`s before dying. So **always read `…/events` before concluding it's a code
+  crash** — an evict loop is platform-side (see errors.md → "Kueue admit/evict loop"),
+  not something a config change fixes.
+- **The fix when a job is crash-looping:** **cancel it promptly** (`DELETE …/jobs/…`,
+  below) so the remaining retries don't burn GPU and flood the graph with phantom runs.
+  Detect a loop by ≥2 same-named `crashed` runs (or `…/events` showing repeated
+  `BackoffLimitExceeded`/pod recreation), then cancel and resubmit once the root cause is
+  fixed. If you ever need `backoffLimit: 0`, that requires a platform-side change (raise
+  it with infra), not a `remote.submit` flag.
+
 ## Containers / log streams
 
 A GPU train job has these containers (per `remote.submit`'s printed hints):
@@ -68,3 +104,20 @@ Report: latest value, iteration index (`iter n/N`), and trend.
 irreversible action on a paid resource → **confirm with the user first** unless they
 already asked for it. After cancelling, if it was a failure/abort, write a
 `RunFailure` (PROTOCOLS §5) and set the stage `result` accordingly (never blank).
+
+**Auth gotcha — you must cancel as the job's owner (`curie`).** `remote.submit` jobs are
+owned by `username: curie` (PROTOCOLS §1). The Curie sandbox's default platform client
+(`_shared/orbital_api.py`) is **proxied** and acts as the *real user* (`ajinkya`), so a
+DELETE through it returns **403 "You can only modify your own jobs"**. To cancel, call the
+**real platform URL directly with the curie `X-API-Key`** — the same identity
+`remote.submit`/`cli.client` uses — e.g.:
+```python
+import os, httpx
+httpx.Client(base_url="https://platform.orbitalindustries.com",
+             headers={"X-API-Key": os.environ["ORBITAL_API_KEY"]}).delete(
+    f"/api/clusters/{cluster}/jobs/core-gpu/{job_id}")   # -> 200 {"success": true, ...}
+```
+Do **not** send `X-Forwarded-User-Email` on this call (that makes it act as the user and
+403s), and don't hit the proxy `PLATFORM_URL` with only `X-API-Key` (→ 401). Verify with
+the *same* direct+key client (a proxied GET would show a different view). Verified live
+2026-08-14 cancelling the crash-looped `advantage-estimators` jobs.

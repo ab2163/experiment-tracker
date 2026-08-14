@@ -53,11 +53,58 @@ Config groups (base `config/train.yaml`):
 - `skyrl=<default|aws|civo|qwen3_8b>` — cluster/model SkyRL preset. Match to
   `--cluster` (e.g. `skyrl=civo` with `--cluster civo`).
 - Scalars: `dataset.batch_size`, `dataset.group_size`, `dataset.score_cpu_budget`,
-  `train.n_epochs`, `train.adam_params.lr`, `train.adv.estimator`
-  (`mean_baseline`, …), `skyrl.trainer.placement.policy_num_gpus_per_node`,
+  `train.n_epochs`, `train.adam_params.lr`, `train.adv.estimator` (see
+  **Advantage estimators** below), `skyrl.trainer.placement.policy_num_gpus_per_node`,
   `skyrl.generator.inference_engine.tensor_parallel_size`.
 - Logging: `logging.wandb.project`, `logging.wandb.name`, `logging.wandb.mode`,
   `logging.wandb.entity`.
+
+### Advantage estimators (`train.adv.estimator`)
+
+The reward→advantage pipeline is `reward_transform → return_strategy → estimator`
+(`train/adv/estimators.py`, enum `AdvEstimator` in `common/config_schema.py`). Each
+estimator is group-relative (operates within a group of `group_size` trajectories for
+one task). **There are four**, not three:
+
+| Value | What it does |
+|---|---|
+| `mean_baseline` (default) | Subtract the group mean: `r - mean(r)`. Vanilla GRPO baseline. |
+| `mean_std` | Standardize: `(r - mean) / (std + eps)`. GRPO-style normalization. |
+| `tttd_entropic` | Entropic softmax-weighted advantage, **fixed** `train.adv.beta` (default 2.0). |
+| `tttd_entropic_adaptive_beta` | Same, but `beta` is auto-tuned per group to hit a target KL (`train.adv.adaptive_delta=log2`); ignores `beta`. |
+
+`train.adv` defaults: `reward_transform=identity`, `return_strategy=max`,
+`estimator=mean_baseline`, `beta=2.0`. Changing only `train.adv.estimator` is the clean
+way to A/B the estimator with everything else held fixed.
+
+### GPU sizing per model (the `skyrl=` preset sets the GPU count)
+
+The **`skyrl=` preset** — not the model — sets `policy_num_gpus_per_node` +
+`tensor_parallel_size`, i.e. the GPUs the job requests (confirm via `--dry-run`
+`sidecars[skyrl].n_gpus`):
+
+| skyrl preset | GPUs / TP | Use for |
+|---|---|---|
+| `skyrl=default` | **1 GPU**, TP=1 | a model that fits one GPU — the **1-GPU budget** preset. |
+| `skyrl=qwen3_5_4b`, `skyrl=qwen3_8b` | 2 GPUs, TP=2 | 4B / 8B dense (8B **OOMs on 1 GPU**). |
+| `skyrl=civo`, `skyrl=aws`, `skyrl=qwen3_30b_a3b-aws` | 8 GPUs, TP=8 | 30B-class MoE on a full node. |
+
+For a **1-GPU budget** use `skyrl=default` with a small dense skyrl model:
+**`model=tinker/llama_3_2_1b`** (`meta-llama/Llama-3.2-1B`, `renderer_name=role_colon`;
+its config note says *"deprecated on tinker, only use with skyrl"* — exactly our path).
+The 4B/8B have 2-GPU presets; `nemotron3_nano`/`qwen3_30b_a3b*` are 30B MoE (multi-GPU).
+A 1B model also leaves the most memory for a large `batch_size×group_size`, so it is
+both the 1-GPU *and* the max-throughput choice.
+
+### circle_packing sizing (validated)
+
+`config/environment/circle_packing.yaml`: 17 train circles (`[15..34]` minus a few),
+3 val, Docker scorer `opt-prime-circle-packing:latest`, `budget_s=60`, `n_cpus=1`/task.
+The repo's civo max-utilization audit ran circle_packing at **`batch_size=32`,
+`group_size=16`** (512 traj/iter) to "complete 100%" (avg reward 0.39→2.28). That is the
+documented max B×G for the env. On a **1-GPU** job the SkyRL sidecar has ~4 vCPU + a
+16-vCPU DinD, so set `dataset.score_cpu_budget≈16` (not the 128 used on 8-GPU nodes) —
+scoring is the CPU-bound step (each rollout is a 60 s Docker sim).
 
 ### W&B is mandatory
 `train/utils/ml_log.py` asserts that if `logging.wandb.project` is set then

@@ -46,6 +46,52 @@ stalls. Consider fewer turns or a longer context if the env allows.
 OOM (above), a scorer/DinD image pull failure (category `infra`), or preemption of a
 `low`-priority job (category `quota`/`infra` — it can requeue).
 
+**SkyRL-tx server never becomes healthy + ECR/AWS-creds error → crash-loop**
+→ category `infra`. Signature: the trainer log repeats
+`[start-trainer.sh] Waiting for SkyRL-tx server at http://localhost:8000/api/v1/healthz`
+and never proceeds, alongside
+`[common.settings][ERROR] AWS credentials are missing or expired. Docker image pulls
+from ECR will fail. Run: aws sso login`. The SkyRL sidecar / DinD scorer images live in
+AWS ECR (`242201294648.dkr.ecr.us-west-1…`); if the pod's ECR/AWS creds have lapsed the
+inference server can't start, the trainer waits, the Job fails, and **k8s restarts it —
+each retry spawns a fresh W&B run that also crashes**, so W&B/Omni fills with many
+same-named `crashed` runs (the tell-tale of a crash-loop, not a config bug).
+*Diagnosis:* it is **not** your hyperparameters if `--dry-run` was clean and pods
+scheduled — check whether **other, unrelated jobs on the same cluster are completing**
+(a `refresh-ecr-secret` cronjob runs every minute to keep the ECR pull-secret fresh); if
+they are, the lapse was transient. *Fix:* resubmit once creds are fresh; the config is
+unchanged. Record one `RunFailure` for the batch (don't write 43). Observed live
+2026-08-13 on the `advantage-estimators` circle_packing batch. If it recurs when other
+jobs are healthy, escalate to infra (the pod isn't getting ECR creds).
+
+> **Why one crash → dozens of `crashed` runs:** the k8s Job's non-zero `backoffLimit`
+> auto-retries the failed pod ~6× (each replacement pod re-runs `wandb.init` → a fresh
+> run ID with the same display name). This is **not** a config bug and **not** you
+> resubmitting; `remote.submit` can't set `backoffLimit: 0`. **When you spot a crash-loop
+> (≥2 same-named `crashed` runs), cancel the Job promptly** to stop the remaining retries
+> burning GPU and flooding the graph, then dedupe by `display_name` when reporting. Full
+> mechanism + detection in monitoring.md → "Auto-retry (k8s `backoffLimit`)".
+
+**Kueue admit/evict loop — "Exceeded the PodsReady timeout" (never runs a step)**
+→ category `infra`. **Check `GET …/jobs/{ns}/{job_id}/events` FIRST for any failed/looping
+job** — the logs alone mislead here. Signature: repeated `Resumed` / `Started` (`Admitted
+by clusterQueue`) and `Stopped: Exceeded the PodsReady timeout …`, with `Suspended`
+counts in the double digits and a `SuccessfulDelete pod` each cycle (observed x13, ~17 min
+per cycle). Kueue admits the workload → the Job unsuspends → a pod is created → the pod
+does **not** reach *Ready* within Kueue's `waitForPodsReady` timeout → Kueue **evicts** it
+and re-suspends → re-queues, forever. The job **never runs a training step**, and each
+admitted attempt may `wandb.init` before eviction, so this **also** manifests as many
+same-named `crashed` runs (don't mistake it for a config crash). A misleading
+`SkyRL-tx …healthz` wait or `AWS credentials … ECR` line in the trainer log is usually a
+**symptom** (the pod was killed mid-startup), not the cause. *Diagnosis:* this is almost
+always **platform-side** — a bad Kueue config/update evicting still-starting pods; it hits
+multiple users' jobs at once, so **check Slack / whether unrelated jobs on the cluster are
+also stuck** before touching your config. *Fix:* nothing to change in the run — **cancel
+the looping jobs** (stop the churn + phantom runs), report it as a platform/Kueue issue,
+and **resubmit once infra confirms Kueue is healthy**. Observed live 2026-08-13/14 on the
+`advantage-estimators` civo batch, concurrent with a reported Kueue-update bug (AWS,
+per Anders/Tim on Slack; civo affected too).
+
 ## W&B / discovery
 
 **Run doesn't appear on W&B immediately** → normal. It can take a minute or two after

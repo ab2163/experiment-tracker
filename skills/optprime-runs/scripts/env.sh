@@ -19,5 +19,14 @@ cd "$ROOT/current/orb/libs/opt-prime" || { echo "optprime-runs: current release 
 if [ ! -x .venv/bin/python ]; then
   uv python install 3.13.7 >/dev/null 2>&1 || true
 fi
+
+# `remote.submit` runs `git rev-list origin/main..main` to diff the branch. The release
+# dir is owned by the uid that ran update.sh, so git's dubious-ownership guard aborts the
+# submit for any other activating agent. Whitelist the resolved orb repo (path rotates per
+# release) as safe. Idempotent: only add if not already present, so ~/.gitconfig can't grow.
+ORB_REAL="$(cd "$ROOT/current/orb" && pwd -P)"
+git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$ORB_REAL" || \
+  git config --global --add safe.directory "$ORB_REAL"
+
 source .venv/bin/activate
 echo "optprime-runs: activated $(readlink -f "$ROOT/current") | python=$(python -V 2>&1)"
