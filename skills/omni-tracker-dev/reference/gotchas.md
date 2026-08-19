@@ -32,9 +32,22 @@ do **not** apply to the standalone FastAPI app.
   silently no-ops the mutation.
 - **REST `update_node` uses flat `updates:{…}`; the bridge `updateNode` action uses
   nested `properties:{…}`.** Don't cross them.
-- **`created_by` is server-set** and resolves to the viewer's email (verified
+- **`created_by` is server-set** and resolves to the viewer's **email** (verified
   `ajinkya@orbitalindustries.com`) — the basis for ownership/sharing; don't try to set
-  it yourself.
+  it yourself. It is stamped **synchronously at create** (a throwaway node read back
+  immediately already has it); no node in the graph is truly null/unowned.
+- **Native "UNOWNED" badge is an Omni-platform bug, not ours** (investigated 2026-08-19,
+  ticket #0015). A node you just created (e.g. a Command "ad", `created_by` = your email,
+  `visibility` private) can show an **UNOWNED** tag in Omni's *native* node-detail/grid
+  view that clears on refresh. Our app never renders "UNOWNED" — `sharing.tsx`
+  `ownedByMe()` treats optimistic (`created_by` null) and matches **both** `me.id` and
+  `me.email`, and only draws a teal **"shared"** badge for `visibility === "public"`. The
+  native badge likely compares the owner to the viewer's **user-id (UUID)** while
+  `created_by` holds the **email** → mismatch → transient UNOWNED. Cosmetic only (access
+  is enforced server-side); **fix belongs upstream in Omni**, nothing to change here. The
+  genuinely-unowned-to-*you* items are ones created by teammates/ingest (`created_by` =
+  someone else) — transferring those needs a server-side mechanism (`created_by` is not
+  bridge-mutable).
 - **Don't remove `RunFailure` or the `Omni-commands` folder** — the `optprime-runs` skill
   writes to them.
 
